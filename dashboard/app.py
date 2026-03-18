@@ -6,7 +6,7 @@ from pathlib import Path
 # Ensure src/ is on the path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -24,8 +24,7 @@ templates = Jinja2Templates(directory="templates/dashboard")
 
 
 @app.get("/")
-async def index(request: object):
-    from fastapi import Request
+async def index(request: Request):
     from aiNewReader.db import get_db, get_last_run, get_all_feeds
     from aiNewReader.config import get_config
 

@@ -4,7 +4,7 @@ max_articles_per_run: 300
 health_check_interval_hours: 24
 
 provider:
-  default: anthropic
+  default: ollama
   classify_model: claude-haiku-4-5-20251001
   audit_model: claude-sonnet-4-6
   gemini_classify_model: gemini-2.0-flash

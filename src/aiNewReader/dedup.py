@@ -82,10 +82,14 @@ async def deduplicate(
         if row["embedding"]:
             db_embeddings.append(unpack_embedding(row["embedding"]))
 
-    # Embed new articles
+    # Embed new articles (skip semantic dedup if Ollama is unavailable)
     texts = [f"{a.get('title', '')} {a.get('raw_summary', '')}"[:512] for a in originals]
     if texts:
-        vecs = await embed_texts(texts)
+        try:
+            vecs = await embed_texts(texts)
+        except Exception as e:
+            print(f"  [WARN] Semantic dedup skipped (Ollama unavailable: {e.__class__.__name__})")
+            return articles
         batch_embeddings: list[list[float]] = []
         for i, (art, vec) in enumerate(zip(originals, vecs)):
             art["_embedding"] = vec
