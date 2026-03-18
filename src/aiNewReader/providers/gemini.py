@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 
 from google import genai
 from google.genai import types
@@ -8,18 +9,23 @@ from google.genai import types
 from ..config import get_config
 from .base import ArticleInput, AuditResult, ClassifyResult
 
+# NOTE: Gemini JSON mode (response_mime_type="application/json") requires the
+# top-level response to be a JSON *object*, never a bare array.
+# Classify wraps its array in {"articles": [...]} and unwraps on parse.
+
 _CLASSIFY_SYSTEM = """You are an article classifier. Assign 1-5 tags with confidence scores.
-Respond in the SAME language as the article. Return JSON array only:
-[{"article_id": N, "tags": [{"tag": "...", "confidence": 0.9}]}]"""
+Respond in the SAME language as the article.
+Return JSON object only: {"articles": [{"article_id": N, "tags": [{"tag": "...", "confidence": 0.9}]}]}"""
 
 _AUDIT_SYSTEM = """Summarize the article in 3-5 bullet points (article's language) and verify tags.
-Return JSON only: {"summary": "• ...", "verified_tags": [...], "classification_correct": true}"""
+Return JSON object only: {"summary": "• ...", "verified_tags": [...], "classification_correct": true}"""
 
 
 class GeminiProvider:
     def __init__(self) -> None:
         cfg = get_config()
-        self._client = genai.Client()
+        api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY", "")
+        self._client = genai.Client(api_key=api_key)
         self._classify_model = cfg.provider.gemini_classify_model
         self._audit_model = cfg.provider.gemini_audit_model
 
@@ -42,9 +48,14 @@ class GeminiProvider:
             ),
         )
         data = json.loads(resp.text)
+        # Unwrap the object wrapper; fall back gracefully if model omits it
+        if isinstance(data, dict):
+            items = data.get("articles", list(data.values())[0] if data else [])
+        else:
+            items = data  # bare array fallback
         return [
             ClassifyResult(article_id=item["article_id"], tags=item.get("tags", []))
-            for item in data
+            for item in items
         ]
 
     def audit(self, article: ArticleInput) -> AuditResult:

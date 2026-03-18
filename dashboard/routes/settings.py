@@ -14,8 +14,7 @@ templates = Jinja2Templates(directory="templates/dashboard")
 
 @router.get("/", response_class=HTMLResponse)
 async def settings_page(request: Request):
-    cfg = get_config()
-    return templates.TemplateResponse("settings.html", {"request": request, "cfg": cfg})
+    return RedirectResponse(url="/", status_code=302)
 
 
 @router.post("/save")
@@ -27,8 +26,14 @@ async def save_settings(
     provider_default: str = Form("anthropic"),
     classify_model: str = Form("claude-haiku-4-5-20251001"),
     audit_model: str = Form("claude-sonnet-4-6"),
+    gemini_classify_model: str = Form("gemini-3-flash-preview"),
+    gemini_audit_model: str = Form("gemini-3.1-pro-preview"),
+    ollama_base_url: str = Form("http://localhost:11434"),
+    ollama_embed_model: str = Form("bge-m3"),
+    ollama_chat_model: str = Form("qwen3.5:9b"),
+    deepseek_classify_model: str = Form("deepseek-chat"),
+    deepseek_audit_model: str = Form("deepseek-chat"),
 ):
-    # Read current config
     with open("config.yaml", encoding="utf-8") as f:
         data = yaml.safe_load(f) or {}
 
@@ -39,9 +44,16 @@ async def save_settings(
     data["provider"]["default"] = provider_default
     data["provider"]["classify_model"] = classify_model
     data["provider"]["audit_model"] = audit_model
+    data["provider"]["gemini_classify_model"] = gemini_classify_model
+    data["provider"]["gemini_audit_model"] = gemini_audit_model
+    data["provider"]["ollama_base_url"] = ollama_base_url
+    data["provider"]["ollama_embed_model"] = ollama_embed_model
+    data["provider"]["ollama_chat_model"] = ollama_chat_model
+    data["provider"]["deepseek_classify_model"] = deepseek_classify_model
+    data["provider"]["deepseek_audit_model"] = deepseek_audit_model
 
     with open("config.yaml", "w", encoding="utf-8") as f:
         yaml.dump(data, f, allow_unicode=True, default_flow_style=False)
 
     load_config("config.yaml")
-    return RedirectResponse(url="/settings/", status_code=303)
+    return RedirectResponse(url="/", status_code=303)

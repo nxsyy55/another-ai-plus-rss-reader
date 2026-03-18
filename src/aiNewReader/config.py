@@ -6,7 +6,7 @@ from pathlib import Path
 import yaml
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)  # .env values always take priority over system env vars
 from pydantic import BaseModel, Field
 
 
@@ -34,11 +34,13 @@ class ProviderConfig(BaseModel):
     default: str = "anthropic"
     classify_model: str = "claude-haiku-4-5-20251001"
     audit_model: str = "claude-sonnet-4-6"
-    gemini_classify_model: str = "gemini-2.0-flash"
-    gemini_audit_model: str = "gemini-2.5-pro"
+    gemini_classify_model: str = "gemini-3-flash-preview"
+    gemini_audit_model: str = "gemini-3.1-pro-preview"
     ollama_base_url: str = "http://localhost:11434"
     ollama_embed_model: str = "bge-m3"
-    ollama_chat_model: str = "qwen3.5"
+    ollama_chat_model: str = "qwen3.5:9b"
+    deepseek_classify_model: str = "deepseek-chat"
+    deepseek_audit_model: str = "deepseek-chat"
 
 
 class DashboardConfig(BaseModel):

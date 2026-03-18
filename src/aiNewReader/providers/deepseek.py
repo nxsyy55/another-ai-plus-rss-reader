@@ -19,6 +19,9 @@ DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 class DeepSeekProvider:
     def __init__(self) -> None:
         import os
+        cfg = get_config()
+        self._classify_model = cfg.provider.deepseek_classify_model
+        self._audit_model = cfg.provider.deepseek_audit_model
         self._client = OpenAI(
             api_key=os.environ.get("DEEPSEEK_API_KEY", ""),
             base_url=DEEPSEEK_BASE_URL,
@@ -43,7 +46,7 @@ class DeepSeekProvider:
             {"article_id": a.id, "title": a.title, "snippet": a.snippet}
             for a in articles
         ], ensure_ascii=False)
-        raw = self._chat(_CLASSIFY_SYSTEM, user_msg)
+        raw = self._chat(_CLASSIFY_SYSTEM, user_msg, model=self._classify_model)
         data = json.loads(raw)
         if isinstance(data, dict):
             data = list(data.values())[0] if data else []
@@ -58,7 +61,7 @@ class DeepSeekProvider:
             "title": article.title,
             "content": article.snippet,
         }, ensure_ascii=False)
-        raw = self._chat(_AUDIT_SYSTEM, user_msg)
+        raw = self._chat(_AUDIT_SYSTEM, user_msg, model=self._audit_model)
         data = json.loads(raw)
         return AuditResult(
             article_id=article.id,

@@ -2,29 +2,30 @@ from __future__ import annotations
 
 from typing import Any
 
-from .db import get_db, get_article_by_url, add_feedback, get_feedback_embeddings, has_dislike_signal
+from .db import get_db, get_article_by_url, set_feedback, get_feedback_embeddings, has_dislike_signal
 from .embeddings import cosine_similarity, embed_text, pack_embedding, unpack_embedding
 
 
 async def record_feedback(url: str, signal: int) -> bool:
-    """Record a like (+1) or dislike (-1) for an article by URL."""
+    """Record feedback for an article: +1 like, -1 dislike, 0 neutral/clear."""
     with get_db() as conn:
         row = get_article_by_url(conn, url)
         if row is None:
             return False
         article_id = row["id"]
 
-    # Reuse stored embedding if available
+    # signal=0 (meh/neutral) just clears existing feedback, no embedding needed
     embedding_blob: bytes | None = None
-    if row["embedding"]:
-        embedding_blob = row["embedding"]
-    else:
-        text = f"{row['title'] or ''} {row['raw_summary'] or ''}"[:512]
-        vec = await embed_text(text)
-        embedding_blob = pack_embedding(vec)
+    if signal != 0:
+        if row["embedding"]:
+            embedding_blob = row["embedding"]
+        else:
+            text = f"{row['title'] or ''} {row['raw_summary'] or ''}"[:512]
+            vec = await embed_text(text)
+            embedding_blob = pack_embedding(vec)
 
     with get_db() as conn:
-        add_feedback(conn, article_id, signal, embedding_blob)
+        set_feedback(conn, article_id, signal, embedding_blob)
 
     return True
 

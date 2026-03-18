@@ -3,10 +3,10 @@ from __future__ import annotations
 import asyncio
 
 from fastapi import APIRouter, Request, Form, Query
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 
-from aiNewReader.db import get_db, get_article_tags, init_db
+from aiNewReader.db import get_db, get_article_tags, get_latest_feedback, init_db
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates/dashboard")
@@ -16,7 +16,6 @@ templates = Jinja2Templates(directory="templates/dashboard")
 async def articles_page(
     request: Request,
     q: str = Query(default=""),
-    language: str = Query(default=""),
     tag: str = Query(default=""),
     page: int = Query(default=1),
 ):
@@ -26,16 +25,13 @@ async def articles_page(
 
     if q:
         from aiNewReader.rag.query import search as rag_search
-        results = await rag_search(q, limit=limit, language=language or None, tag=tag or None)
+        results = await rag_search(q, limit=limit, tag=tag or None)
         articles = results
         total = len(results)
     else:
         with get_db() as conn:
             where = "WHERE dedup_status='original'"
             params: list = []
-            if language:
-                where += " AND language=?"
-                params.append(language)
             rows = conn.execute(
                 f"SELECT * FROM articles {where} ORDER BY pub_date DESC LIMIT ? OFFSET ?",
                 params + [limit, offset],
@@ -49,13 +45,13 @@ async def articles_page(
                 art = dict(row)
                 tags = get_article_tags(conn, art["id"])
                 art["tags"] = [{"tag": t["tag"], "confidence": t["confidence"]} for t in tags]
+                art["feedback_signal"] = get_latest_feedback(conn, art["id"])
                 articles.append(art)
 
     return templates.TemplateResponse("articles.html", {
         "request": request,
         "articles": articles,
         "q": q,
-        "language": language,
         "tag": tag,
         "page": page,
         "total": total,
@@ -68,4 +64,5 @@ async def articles_page(
 async def record_feedback(url: str = Form(...), signal: int = Form(...)):
     from aiNewReader.feedback import record_feedback as _fb
     await _fb(url, signal)
-    return RedirectResponse(url="/articles/", status_code=303)
+    # Return JSON for AJAX calls; fall back to redirect for plain form posts
+    return JSONResponse({"status": "ok", "signal": signal})

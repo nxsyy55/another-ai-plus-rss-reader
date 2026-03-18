@@ -367,6 +367,27 @@ def add_feedback(
     )
 
 
+def set_feedback(
+    conn: sqlite3.Connection, article_id: int, signal: int, embedding: bytes | None = None
+) -> None:
+    """Upsert feedback for an article. signal=0 clears feedback (meh/neutral)."""
+    conn.execute("DELETE FROM feedback WHERE article_id=?", (article_id,))
+    if signal != 0:
+        conn.execute(
+            "INSERT INTO feedback(article_id, signal, embedding) VALUES (?,?,?)",
+            (article_id, signal, embedding),
+        )
+
+
+def get_latest_feedback(conn: sqlite3.Connection, article_id: int) -> int | None:
+    """Return the most recent feedback signal for an article, or None if no feedback."""
+    row = conn.execute(
+        "SELECT signal FROM feedback WHERE article_id=? ORDER BY timestamp DESC LIMIT 1",
+        (article_id,),
+    ).fetchone()
+    return row["signal"] if row else None
+
+
 def get_feedback_embeddings(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     return conn.execute(
         "SELECT signal, embedding FROM feedback WHERE embedding IS NOT NULL"

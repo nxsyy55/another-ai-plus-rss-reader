@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Overview{% endblock %}
 {% block content %}
+
+{# ── Stats ──────────────────────────────────────────────────────────── #}
 <div class="card">
   <h1>Overview</h1>
   <div class="stat-grid">
@@ -36,10 +38,12 @@
     {% endif %}
   </div>
 </div>
+
+{# ── Last Run ───────────────────────────────────────────────────────── #}
 {% if last_run %}
 <div class="card">
   <h2>Last Run</h2>
-  <table>
+  <table style="max-width:600px">
     <tr><th>Started</th><td>{{ last_run.started_at }}</td></tr>
     <tr><th>Completed</th><td>{{ last_run.completed_at or '—' }}</td></tr>
     <tr><th>Provider</th><td>{{ last_run.provider }}</td></tr>
@@ -58,4 +62,167 @@
   <p>No runs yet. Run the pipeline with: <code>python reader.py</code></p>
 </div>
 {% endif %}
+
+{# ── Settings ───────────────────────────────────────────────────────── #}
+<div class="card">
+  <h1>Settings</h1>
+  <form action="/settings/save" method="post">
+
+    {# General #}
+    <h2 style="margin-bottom:0.75rem">General</h2>
+    <table style="max-width:480px;margin-bottom:1.5rem">
+      <tr>
+        <th style="padding:0.5rem 1rem 0.5rem 0;white-space:nowrap">Hours window</th>
+        <td><input type="number" name="hours_window" value="{{ cfg.hours_window }}" style="width:100px"></td>
+      </tr>
+      <tr>
+        <th style="padding:0.5rem 1rem 0.5rem 0;white-space:nowrap">Audit word threshold</th>
+        <td><input type="number" name="audit_word_threshold" value="{{ cfg.audit_word_threshold }}" style="width:100px"></td>
+      </tr>
+      <tr>
+        <th style="padding:0.5rem 1rem 0.5rem 0;white-space:nowrap">Max articles per run</th>
+        <td><input type="number" name="max_articles_per_run" value="{{ cfg.max_articles_per_run }}" style="width:100px"></td>
+      </tr>
+      <tr>
+        <th style="padding:0.5rem 1rem 0.5rem 0;white-space:nowrap">Default provider</th>
+        <td>
+          <select name="provider_default">
+            {% for p in ['anthropic', 'gemini', 'ollama', 'deepseek'] %}
+            <option value="{{ p }}" {% if cfg.provider.default == p %}selected{% endif %}>{{ p }}</option>
+            {% endfor %}
+          </select>
+        </td>
+      </tr>
+    </table>
+
+    {# Provider Models #}
+    <h2 style="margin-bottom:0.75rem">Providers & Models</h2>
+    <table style="margin-bottom:1.5rem">
+      <thead>
+        <tr>
+          <th>Provider</th>
+          <th>Status</th>
+          <th>Classify Model</th>
+          <th>Audit Model</th>
+        </tr>
+      </thead>
+      <tbody>
+
+        {# Anthropic #}
+        <tr>
+          <td><strong>Anthropic</strong></td>
+          <td>
+            {% if provider_status.anthropic %}
+            <span class="badge badge-green">API key set</span>
+            {% else %}
+            <span class="badge badge-gray">No key</span>
+            {% endif %}
+          </td>
+          <td>
+            <select name="classify_model" style="width:220px">
+              {% for m in ['claude-haiku-4-5-20251001','claude-sonnet-4-6','claude-opus-4-6'] %}
+              <option value="{{ m }}" {% if cfg.provider.classify_model == m %}selected{% endif %}>{{ m }}</option>
+              {% endfor %}
+              {% if cfg.provider.classify_model not in ['claude-haiku-4-5-20251001','claude-sonnet-4-6','claude-opus-4-6'] %}
+              <option value="{{ cfg.provider.classify_model }}" selected>{{ cfg.provider.classify_model }}</option>
+              {% endif %}
+            </select>
+          </td>
+          <td>
+            <select name="audit_model" style="width:220px">
+              {% for m in ['claude-haiku-4-5-20251001','claude-sonnet-4-6','claude-opus-4-6'] %}
+              <option value="{{ m }}" {% if cfg.provider.audit_model == m %}selected{% endif %}>{{ m }}</option>
+              {% endfor %}
+              {% if cfg.provider.audit_model not in ['claude-haiku-4-5-20251001','claude-sonnet-4-6','claude-opus-4-6'] %}
+              <option value="{{ cfg.provider.audit_model }}" selected>{{ cfg.provider.audit_model }}</option>
+              {% endif %}
+            </select>
+          </td>
+        </tr>
+
+        {# Gemini #}
+        <tr>
+          <td><strong>Gemini</strong></td>
+          <td>
+            {% if provider_status.gemini %}
+            <span class="badge badge-green">API key set</span>
+            {% else %}
+            <span class="badge badge-gray">No key</span>
+            {% endif %}
+          </td>
+          <td>
+            <select name="gemini_classify_model" style="width:220px">
+              {% for m in ['gemini-3-flash-preview','gemini-3.1-pro-preview'] %}
+              <option value="{{ m }}" {% if cfg.provider.gemini_classify_model == m %}selected{% endif %}>{{ m }}</option>
+              {% endfor %}
+              {% if cfg.provider.gemini_classify_model not in ['gemini-3-flash-preview','gemini-3.1-pro-preview'] %}
+              <option value="{{ cfg.provider.gemini_classify_model }}" selected>{{ cfg.provider.gemini_classify_model }}</option>
+              {% endif %}
+            </select>
+          </td>
+          <td>
+            <select name="gemini_audit_model" style="width:220px">
+              {% for m in ['gemini-3-flash-preview','gemini-3.1-pro-preview'] %}
+              <option value="{{ m }}" {% if cfg.provider.gemini_audit_model == m %}selected{% endif %}>{{ m }}</option>
+              {% endfor %}
+              {% if cfg.provider.gemini_audit_model not in ['gemini-3-flash-preview','gemini-3.1-pro-preview'] %}
+              <option value="{{ cfg.provider.gemini_audit_model }}" selected>{{ cfg.provider.gemini_audit_model }}</option>
+              {% endif %}
+            </select>
+          </td>
+        </tr>
+
+        {# Ollama #}
+        <tr>
+          <td><strong>Ollama</strong></td>
+          <td>
+            {% if provider_status.ollama %}
+            <span class="badge badge-green">Running</span>
+            {% else %}
+            <span class="badge badge-red">Unreachable</span>
+            {% endif %}
+          </td>
+          <td colspan="2">
+            <span style="font-size:0.8rem;color:#666">Chat model (classify + audit):</span>
+            <input name="ollama_chat_model" value="{{ cfg.provider.ollama_chat_model }}" style="width:180px;margin-left:0.5rem">
+            <span style="font-size:0.8rem;color:#666;margin-left:1rem">Base URL:</span>
+            <input name="ollama_base_url" value="{{ cfg.provider.ollama_base_url }}" style="width:200px;margin-left:0.5rem">
+            <span style="font-size:0.8rem;color:#666;margin-left:1rem">Embed model:</span>
+            <input name="ollama_embed_model" value="{{ cfg.provider.ollama_embed_model }}" style="width:120px;margin-left:0.5rem">
+          </td>
+        </tr>
+
+        {# DeepSeek #}
+        <tr>
+          <td><strong>DeepSeek</strong></td>
+          <td>
+            {% if provider_status.deepseek %}
+            <span class="badge badge-green">API key set</span>
+            {% else %}
+            <span class="badge badge-gray">No key</span>
+            {% endif %}
+          </td>
+          <td>
+            <select name="deepseek_classify_model" style="width:220px">
+              {% for m in ['deepseek-chat','deepseek-reasoner'] %}
+              <option value="{{ m }}" {% if cfg.provider.deepseek_classify_model == m %}selected{% endif %}>{{ m }}</option>
+              {% endfor %}
+            </select>
+          </td>
+          <td>
+            <select name="deepseek_audit_model" style="width:220px">
+              {% for m in ['deepseek-chat','deepseek-reasoner'] %}
+              <option value="{{ m }}" {% if cfg.provider.deepseek_audit_model == m %}selected{% endif %}>{{ m }}</option>
+              {% endfor %}
+            </select>
+          </td>
+        </tr>
+
+      </tbody>
+    </table>
+
+    <button type="submit" class="btn btn-primary">Save Settings</button>
+  </form>
+</div>
+
 {% endblock %}

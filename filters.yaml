@@ -1,30 +1,65 @@
 rules:
-  - name: "AI Agents"
-    tags: ["ai", "llm", "agents", "machine-learning", "人工智能"]
-    action: include
-    priority: 10
-
-  - name: "Science"
-    tags: ["science", "research", "physics", "biology", "科学"]
-    action: include
-    priority: 8
-
-  - name: "Golf"
-    tags: ["golf", "高尔夫"]
-    action: include
-    priority: 7
-
-  - name: "Politics"
-    tags: ["politics", "election", "government", "政治"]
-    action: exclude
-    priority: 9
-
-  - name: "Sports (non-golf)"
-    tags: ["sports", "football", "basketball", "soccer", "baseball", "体育"]
-    action: exclude
-    priority: 9
-
-  - name: "Music"
-    tags: ["music", "concert", "album", "音乐"]
-    action: exclude
-    priority: 8
+- id: 5
+  name: Sports (non-golf)
+  action: exclude
+  tags:
+  - sports
+  - football
+  - basketball
+  - soccer
+  - baseball
+  - 体育
+  keywords: []
+  priority: 9
+  enabled: true
+- id: 6
+  name: Music
+  action: exclude
+  tags:
+  - music
+  - concert
+  - album
+  - 音乐
+  keywords: []
+  priority: 8
+  enabled: true
+- id: 2
+  name: Science
+  action: include
+  tags:
+  - science
+  - research
+  - physics
+  - biology
+  - 科学
+  keywords: []
+  priority: 8
+  enabled: true
+- id: 3
+  name: Golf
+  action: include
+  tags:
+  - golf
+  - 高尔夫，PGA
+  keywords: []
+  priority: 7
+  enabled: true
+- id: 7
+  name: 政治类
+  action: include
+  tags:
+  - politics，election，government，政治
+  keywords: []
+  priority: 5
+  enabled: true
+- id: 8
+  name: 电视剧
+  action: include
+  tags:
+  - TV
+  - series
+  - shows
+  - moive
+  keywords: []
+  priority: 5
+  enabled: true

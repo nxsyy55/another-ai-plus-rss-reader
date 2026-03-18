@@ -1,9 +1,82 @@
 feeds:
-  - url: https://feeds.feedburner.com/oreilly/radar
-    name: "O'Reilly Radar"
-    weight: 1.0
-    enabled: true
-  - url: https://news.ycombinator.com/rss
-    name: "Hacker News"
-    weight: 1.0
-    enabled: true
+- enabled: true
+  name: 'A List Apart: The Full Feed'
+  url: https://alistapart.com/main/feed/
+- enabled: true
+  name: Ars Technica
+  url: https://arstechnica.com/feed/
+- enabled: true
+  name: Art China
+  url: http://artchinauk.com/feed/
+- enabled: true
+  name: Clarkesworld Magazine
+  url: https://clarkesworldmagazine.com/feed/
+- enabled: true
+  name: Doodlewash (Watercolor Community)
+  url: https://doodlewash.com/feed/
+- enabled: true
+  name: Engadget
+  url: https://www.engadget.com/rss.xml
+- enabled: true
+  name: File 770
+  url: https://file770.com/feed/
+- enabled: true
+  name: Gurney Journey
+  url: https://gurneyjourney.blogspot.com/feeds/posts/default
+- enabled: true
+  name: HELLO ESPECIALLY 草履虫的话痨之地
+  url: https://sugar-sweet-nightmare.blogspot.com/feeds/posts/default
+- enabled: true
+  name: Handprint (Watercolor Guide Updates)
+  url: https://www.handprint.com/HP/WCL/water.html
+- enabled: true
+  name: Inoreader blog
+  url: https://www.inoreader.com/blog/feed
+- enabled: true
+  name: Lines and Colors
+  url: http://linesandcolors.com/feed/
+- enabled: true
+  name: Locus Online
+  url: https://locusmag.com/feed/
+- enabled: true
+  name: National Geographic
+  url: https://www.youtube.com/feeds/videos.xml?channel_id=UCpVm7bg6pXKo1Pr6k5kxG9A
+- enabled: true
+  name: Pinch of Intelligence
+  url: https://www.pinchofintelligence.com/feed/
+- enabled: true
+  name: Quanta Magazine
+  url: https://www.quantamagazine.org/feed/
+- enabled: true
+  name: R-bloggers
+  url: https://feeds.feedburner.com/RBloggers
+- enabled: true
+  name: RWeekly.org
+  url: https://rweekly.org/atom.xml
+- enabled: true
+  name: ScienceFiction.com
+  url: https://sciencefiction.com/feed/
+- enabled: true
+  name: Solidot
+  url: https://feeds.feedburner.com/solidot
+- enabled: true
+  name: 'WSJ: World News'
+  url: https://feeds.content.dowjones.io/public/rss/RSSWorldNews
+- enabled: true
+  name: 小众软件
+  url: https://feed.appinn.com/
+- enabled: true
+  name: 异次元软件世界
+  url: https://feed.iplaysoft.com/
+- enabled: true
+  name: 普通话主页
+  url: https://www.rfa.org/mandarin/rss2.xml
+- enabled: true
+  name: 理想生活实验室
+  url: https://www.toodaylab.com/feed
+- enabled: true
+  name: 美剧极客
+  url: https://www.tvjike.com/feed
+- enabled: true
+  name: 酷 壳 - CoolShell.cn
+  url: https://coolshell.cn/feed
