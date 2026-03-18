@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Settings</h1>
+  <form action="/settings/save" method="post">
+    <table style="max-width:500px">
+      <tr>
+        <th style="padding:0.6rem 1rem 0.6rem 0">Hours window</th>
+        <td><input type="number" name="hours_window" value="{{ cfg.hours_window }}"></td>
+      </tr>
+      <tr>
+        <th style="padding:0.6rem 1rem 0.6rem 0">Audit word threshold</th>
+        <td><input type="number" name="audit_word_threshold" value="{{ cfg.audit_word_threshold }}"></td>
+      </tr>
+      <tr>
+        <th style="padding:0.6rem 1rem 0.6rem 0">Max articles per run</th>
+        <td><input type="number" name="max_articles_per_run" value="{{ cfg.max_articles_per_run }}"></td>
+      </tr>
+      <tr>
+        <th style="padding:0.6rem 1rem 0.6rem 0">Default provider</th>
+        <td>
+          <select name="provider_default">
+            {% for p in ['anthropic', 'gemini', 'ollama', 'deepseek'] %}
+            <option value="{{ p }}" {% if cfg.provider.default == p %}selected{% endif %}>{{ p }}</option>
+            {% endfor %}
+          </select>
+        </td>
+      </tr>
+      <tr>
+        <th style="padding:0.6rem 1rem 0.6rem 0">Classify model</th>
+        <td><input name="classify_model" value="{{ cfg.provider.classify_model }}" style="width:250px"></td>
+      </tr>
+      <tr>
+        <th style="padding:0.6rem 1rem 0.6rem 0">Audit model</th>
+        <td><input name="audit_model" value="{{ cfg.provider.audit_model }}" style="width:250px"></td>
+      </tr>
+    </table>
+    <div style="margin-top:1rem">
+      <button type="submit" class="btn btn-primary">Save Settings</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

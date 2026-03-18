@@ -1,0 +1,20 @@
+# IDE / tools
+.claude/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# Runtime data
+data/reader.db
+data/lancedb/
+output/digest-*.md
+
+# Secrets
+.env
+*.env

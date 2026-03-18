@@ -1,0 +1,9 @@
+feeds:
+  - url: https://feeds.feedburner.com/oreilly/radar
+    name: "O'Reilly Radar"
+    weight: 1.0
+    enabled: true
+  - url: https://news.ycombinator.com/rss
+    name: "Hacker News"
+    weight: 1.0
+    enabled: true

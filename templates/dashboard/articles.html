@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Articles{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Articles</h1>
+  <form method="get" action="/articles/" class="form-row">
+    <input name="q" value="{{ q }}" placeholder="Semantic search...">
+    <input name="language" value="{{ language }}" placeholder="Language (en, zh...)" style="width:120px">
+    <input name="tag" value="{{ tag }}" placeholder="Tag filter" style="width:150px">
+    <button type="submit" class="btn btn-primary">Search</button>
+    {% if q or language or tag %}
+    <a href="/articles/" class="btn">Clear</a>
+    {% endif %}
+  </form>
+  <p style="font-size:0.85rem;color:#666;margin-bottom:1rem">{{ total }} article(s) found</p>
+  {% for art in articles %}
+  <div class="article-item">
+    <div class="article-title"><a href="{{ art.url }}" target="_blank">{{ art.title or art.url }}</a></div>
+    <div class="article-meta">
+      {{ art.pub_date[:10] if art.pub_date else '?' }} ·
+      {% if art.language %}<span class="badge badge-blue">{{ art.language }}</span>{% endif %}
+      {% if art.word_count %} · {{ art.word_count }} words{% endif %}
+    </div>
+    <div>{% for tag in (art.tags or []) %}<span class="tag">{{ tag.tag if tag is mapping else tag }}</span>{% endfor %}</div>
+    {% if art.audit_summary %}
+    <div class="article-snippet">{{ art.audit_summary[:400] }}</div>
+    {% elif art.snippet %}
+    <div class="article-snippet">{{ art.snippet[:300] }}</div>
+    {% elif art.raw_summary %}
+    <div class="article-snippet">{{ art.raw_summary[:300] }}</div>
+    {% endif %}
+    <div class="feedback-btns">
+      <form class="inline" action="/articles/feedback" method="post">
+        <input type="hidden" name="url" value="{{ art.url }}">
+        <input type="hidden" name="signal" value="1">
+        <button class="btn btn-sm" type="submit">👍</button>
+      </form>
+      <form class="inline" action="/articles/feedback" method="post">
+        <input type="hidden" name="url" value="{{ art.url }}">
+        <input type="hidden" name="signal" value="-1">
+        <button class="btn btn-sm" type="submit">👎</button>
+      </form>
+    </div>
+  </div>
+  {% else %}
+  <p>No articles found.</p>
+  {% endfor %}
+  <div style="margin-top:1rem;display:flex;gap:0.5rem">
+    {% if has_prev %}<a href="?q={{ q }}&language={{ language }}&tag={{ tag }}&page={{ page - 1 }}" class="btn">← Prev</a>{% endif %}
+    {% if has_next %}<a href="?q={{ q }}&language={{ language }}&tag={{ tag }}&page={{ page + 1 }}" class="btn">Next →</a>{% endif %}
+  </div>
+</div>
+{% endblock %}

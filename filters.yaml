@@ -1,0 +1,30 @@
+rules:
+  - name: "AI Agents"
+    tags: ["ai", "llm", "agents", "machine-learning", "人工智能"]
+    action: include
+    priority: 10
+
+  - name: "Science"
+    tags: ["science", "research", "physics", "biology", "科学"]
+    action: include
+    priority: 8
+
+  - name: "Golf"
+    tags: ["golf", "高尔夫"]
+    action: include
+    priority: 7
+
+  - name: "Politics"
+    tags: ["politics", "election", "government", "政治"]
+    action: exclude
+    priority: 9
+
+  - name: "Sports (non-golf)"
+    tags: ["sports", "football", "basketball", "soccer", "baseball", "体育"]
+    action: exclude
+    priority: 9
+
+  - name: "Music"
+    tags: ["music", "concert", "album", "音乐"]
+    action: exclude
+    priority: 8

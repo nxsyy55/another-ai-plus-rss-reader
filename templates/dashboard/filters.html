@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Filters{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Filter Rules</h1>
+  <form action="/filters/add" method="post" class="form-row" style="flex-wrap:wrap;gap:0.5rem">
+    <input name="name" placeholder="Rule name" required>
+    <select name="action">
+      <option value="include">Include</option>
+      <option value="exclude">Exclude</option>
+    </select>
+    <input name="tags" placeholder="Tags (comma-separated)">
+    <input name="keywords" placeholder="Keywords (comma-separated)">
+    <input name="priority" type="number" min="1" max="10" value="5" style="width:60px">
+    <button type="submit" class="btn btn-primary">Add Rule</button>
+  </form>
+  <table>
+    <thead><tr><th>Priority</th><th>Action</th><th>Name</th><th>Tags</th><th>Enabled</th><th>Actions</th></tr></thead>
+    <tbody>
+    {% for rule in rules %}
+    <tr>
+      <td>{{ rule.priority }}</td>
+      <td>
+        <span class="badge {% if rule.action == 'include' %}badge-green{% else %}badge-red{% endif %}">
+          {{ rule.action }}
+        </span>
+      </td>
+      <td>{{ rule.name }}</td>
+      <td>{% for tag in rule.tags %}<span class="tag">{{ tag }}</span>{% endfor %}</td>
+      <td>
+        <form class="inline" action="/filters/toggle" method="post">
+          <input type="hidden" name="name" value="{{ rule.name }}">
+          <button class="btn btn-sm {% if rule.enabled %}btn-primary{% else %}btn-danger{% endif %}" type="submit">
+            {% if rule.enabled %}On{% else %}Off{% endif %}
+          </button>
+        </form>
+      </td>
+      <td>
+        <form class="inline" action="/filters/delete" method="post">
+          <input type="hidden" name="name" value="{{ rule.name }}">
+          <button class="btn btn-sm btn-danger" type="submit">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

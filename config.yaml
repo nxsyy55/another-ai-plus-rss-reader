@@ -1,0 +1,31 @@
+hours_window: 24
+audit_word_threshold: 500
+max_articles_per_run: 300
+health_check_interval_hours: 24
+
+provider:
+  default: anthropic
+  classify_model: claude-haiku-4-5-20251001
+  audit_model: claude-sonnet-4-6
+  gemini_classify_model: gemini-2.0-flash
+  gemini_audit_model: gemini-2.5-pro
+  ollama_base_url: http://localhost:11434
+  ollama_embed_model: bge-m3
+  ollama_chat_model: qwen3.5
+
+delivery:
+  markdown_output: ./output/digest-{date}.md
+  email:
+    enabled: false
+    smtp_host: smtp.gmail.com
+    smtp_port: 587
+    smtp_user: ""
+    to: ""
+  telegram:
+    enabled: false
+    bot_token: ""
+    chat_id: ""
+
+dashboard:
+  port: 8080
+  host: localhost

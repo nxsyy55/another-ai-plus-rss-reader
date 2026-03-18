@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Overview{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Overview</h1>
+  <div class="stat-grid">
+    <div class="stat">
+      <div class="value">{{ total_feeds }}</div>
+      <div class="label">Total Feeds</div>
+    </div>
+    <div class="stat">
+      <div class="value" style="color:#28a745">{{ healthy_feeds }}</div>
+      <div class="label">Healthy</div>
+    </div>
+    <div class="stat">
+      <div class="value" style="color:#dc3545">{{ unhealthy_feeds }}</div>
+      <div class="label">Unhealthy</div>
+    </div>
+    {% if last_run %}
+    <div class="stat">
+      <div class="value">{{ last_run.articles_fetched or 0 }}</div>
+      <div class="label">Fetched</div>
+    </div>
+    <div class="stat">
+      <div class="value">{{ last_run.articles_after_dedup or 0 }}</div>
+      <div class="label">After Dedup</div>
+    </div>
+    <div class="stat">
+      <div class="value">{{ last_run.articles_after_filter or 0 }}</div>
+      <div class="label">After Filter</div>
+    </div>
+    <div class="stat">
+      <div class="value">{{ last_run.articles_audited or 0 }}</div>
+      <div class="label">Audited</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% if last_run %}
+<div class="card">
+  <h2>Last Run</h2>
+  <table>
+    <tr><th>Started</th><td>{{ last_run.started_at }}</td></tr>
+    <tr><th>Completed</th><td>{{ last_run.completed_at or '—' }}</td></tr>
+    <tr><th>Provider</th><td>{{ last_run.provider }}</td></tr>
+    <tr><th>Status</th><td>
+      <span class="badge {% if last_run.status == 'success' %}badge-green{% elif last_run.status == 'failed' %}badge-red{% else %}badge-blue{% endif %}">
+        {{ last_run.status }}
+      </span>
+    </td></tr>
+    {% if last_run.error_message %}
+    <tr><th>Error</th><td style="color:#dc3545">{{ last_run.error_message }}</td></tr>
+    {% endif %}
+  </table>
+</div>
+{% else %}
+<div class="card">
+  <p>No runs yet. Run the pipeline with: <code>python reader.py</code></p>
+</div>
+{% endif %}
+{% endblock %}

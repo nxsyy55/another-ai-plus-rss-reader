@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Feeds{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Feeds</h1>
+
+  <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem">
+    <div style="flex:1;min-width:300px">
+      <h2>Add a feed</h2>
+      <form action="/feeds/add" method="post" class="form-row" style="margin-top:0.5rem">
+        <input name="url" placeholder="https://example.com/feed.xml" required style="min-width:260px">
+        <input name="name" placeholder="Name (optional)">
+        <button type="submit" class="btn btn-primary">Add</button>
+      </form>
+    </div>
+    <div style="flex:1;min-width:260px">
+      <h2>Import OPML</h2>
+      <form action="/feeds/import-opml" method="post" enctype="multipart/form-data" class="form-row" style="margin-top:0.5rem">
+        <input type="file" name="file" accept=".opml,.xml" required>
+        <button type="submit" class="btn btn-primary">Import</button>
+      </form>
+      {% if request.query_params.get('imported') %}
+      <p style="color:#28a745;font-size:0.85rem;margin-top:0.4rem">
+        ✓ Imported {{ request.query_params.get('imported') }} feed(s)
+      </p>
+      {% endif %}
+    </div>
+  </div>
+
+  <table>
+    <thead><tr><th>Name</th><th>URL</th><th>Status</th><th>Articles</th><th>Actions</th></tr></thead>
+    <tbody>
+    {% for feed in feeds %}
+    <tr>
+      <td>{{ feed.name or '—' }}</td>
+      <td style="font-size:0.8rem;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ feed.url }}">{{ feed.url }}</td>
+      <td>
+        {% if not feed.enabled %}
+          <span class="badge badge-gray">Disabled</span>
+        {% elif feed.healthy %}
+          <span class="badge badge-green">Healthy</span>
+        {% else %}
+          <span class="badge badge-red">Dead</span>
+        {% endif %}
+      </td>
+      <td>{{ feed.article_count }}</td>
+      <td style="white-space:nowrap">
+        {% if feed.enabled %}
+        <form class="inline" action="/feeds/disable" method="post">
+          <input type="hidden" name="url" value="{{ feed.url }}">
+          <button class="btn btn-sm" type="submit" style="background:#6c757d;color:#fff">Disable</button>
+        </form>
+        {% else %}
+        <form class="inline" action="/feeds/enable" method="post">
+          <input type="hidden" name="url" value="{{ feed.url }}">
+          <button class="btn btn-sm btn-primary" type="submit">Enable</button>
+        </form>
+        {% endif %}
+        <form class="inline" action="/feeds/remove" method="post" onsubmit="return confirm('Remove this feed?')">
+          <input type="hidden" name="url" value="{{ feed.url }}">
+          <button class="btn btn-sm btn-danger" type="submit">Remove</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p style="font-size:0.8rem;color:#888;margin-top:0.75rem">{{ feeds|length }} feed(s) total</p>
+</div>
+{% endblock %}
