@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Generator
 
 DB_PATH = Path("data/reader.db")
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 
 def _get_conn(path: Path = DB_PATH) -> sqlite3.Connection:
@@ -119,11 +119,19 @@ def _create_schema(conn: sqlite3.Connection) -> None:
             timestamp  DATETIME DEFAULT CURRENT_TIMESTAMP
         );
 
+        CREATE TABLE IF NOT EXISTS reports (
+            id           INTEGER PRIMARY KEY,
+            run_id       INTEGER REFERENCES runs(id),
+            content      TEXT NOT NULL,
+            generated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+
         CREATE INDEX IF NOT EXISTS idx_articles_url ON articles(url);
         CREATE INDEX IF NOT EXISTS idx_articles_pub_date ON articles(pub_date);
         CREATE INDEX IF NOT EXISTS idx_articles_run_id ON articles(run_id);
         CREATE INDEX IF NOT EXISTS idx_article_tags_article_id ON article_tags(article_id);
         CREATE INDEX IF NOT EXISTS idx_feedback_article_id ON feedback(article_id);
+        CREATE INDEX IF NOT EXISTS idx_reports_run_id ON reports(run_id);
     """)
 
 
@@ -145,6 +153,17 @@ def _migrate(conn: sqlite3.Connection) -> None:
     current = _get_schema_version(conn)
     if current < 1:
         _set_schema_version(conn, 1)
+    if current < 2:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS reports (
+                id           INTEGER PRIMARY KEY,
+                run_id       INTEGER REFERENCES runs(id),
+                content      TEXT NOT NULL,
+                generated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_reports_run_id ON reports(run_id)")
+        _set_schema_version(conn, 2)
 
 
 # ── Feed helpers ──────────────────────────────────────────────────────────────
@@ -400,3 +419,17 @@ def has_dislike_signal(conn: sqlite3.Connection, article_id: int) -> bool:
         (article_id,),
     ).fetchone()
     return row is not None
+
+
+def save_report(conn: sqlite3.Connection, run_id: int, content: str) -> int:
+    cur = conn.execute(
+        "INSERT INTO reports(run_id, content, generated_at) VALUES (?,?,?)",
+        (run_id, content, datetime.utcnow().isoformat()),
+    )
+    return cur.lastrowid
+
+
+def get_latest_report(conn: sqlite3.Connection) -> sqlite3.Row | None:
+    return conn.execute(
+        "SELECT * FROM reports ORDER BY generated_at DESC LIMIT 1"
+    ).fetchone()

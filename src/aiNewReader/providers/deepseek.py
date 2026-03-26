@@ -69,3 +69,14 @@ class DeepSeekProvider:
             verified_tags=data.get("verified_tags", []),
             classification_correct=data.get("classification_correct", True),
         )
+
+    def complete(self, system: str, user: str, max_tokens: int = 2048) -> str:
+        resp = self._client.chat.completions.create(
+            model=self._audit_model,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            max_tokens=max_tokens,
+        )
+        return resp.choices[0].message.content or ""

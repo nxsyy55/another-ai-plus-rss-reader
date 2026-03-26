@@ -81,3 +81,14 @@ class GeminiProvider:
             verified_tags=data.get("verified_tags", []),
             classification_correct=data.get("classification_correct", True),
         )
+
+    def complete(self, system: str, user: str, max_tokens: int = 2048) -> str:
+        resp = self._client.models.generate_content(
+            model=self._audit_model,
+            contents=[{"role": "user", "parts": [{"text": user}]}],
+            config=types.GenerateContentConfig(
+                system_instruction=system,
+                max_output_tokens=max_tokens,
+            ),
+        )
+        return resp.text

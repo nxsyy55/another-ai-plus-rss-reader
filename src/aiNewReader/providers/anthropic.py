@@ -80,3 +80,12 @@ class AnthropicProvider:
             verified_tags=data.get("verified_tags", []),
             classification_correct=data.get("classification_correct", True),
         )
+
+    def complete(self, system: str, user: str, max_tokens: int = 2048) -> str:
+        resp = self._client.messages.create(
+            model=self._audit_model,
+            max_tokens=max_tokens,
+            system=system,
+            messages=[{"role": "user", "content": user}],
+        )
+        return resp.content[0].text

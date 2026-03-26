@@ -116,6 +116,15 @@ async def _run_pipeline(hours: int, provider: str | None, dry_run: bool) -> None
                     )
         articles = [a for a in articles if a["id"] not in excluded_ids]
 
+    click.echo("▶ Stage 6b: Generating daily report")
+    from .reporter import generate_report
+    from .db import save_report
+    report_data = generate_report(articles, provider_name)
+    report_json = json.dumps(report_data, ensure_ascii=False)
+    with get_db() as conn:
+        save_report(conn, run_id, report_json)
+    click.echo(f"  Report: {len(report_data.get('key_themes', []))} themes identified")
+
     click.echo("▶ Indexing to RAG store")
     index_articles_batch(articles)
 

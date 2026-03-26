@@ -68,3 +68,17 @@ class OllamaProvider:
             verified_tags=data.get("verified_tags", []),
             classification_correct=data.get("classification_correct", True),
         )
+
+    def complete(self, system: str, user: str, max_tokens: int = 2048) -> str:
+        payload = {
+            "model": self._model,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            "stream": False,
+        }
+        with httpx.Client(timeout=60.0) as client:
+            resp = client.post(f"{self._base_url}/api/chat", json=payload)
+            resp.raise_for_status()
+            return resp.json()["message"]["content"]
