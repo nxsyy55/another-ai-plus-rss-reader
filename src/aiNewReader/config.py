@@ -53,6 +53,7 @@ class AppConfig(BaseModel):
     audit_word_threshold: int = 500
     max_articles_per_run: int = 300
     health_check_interval_hours: int = 24
+    firecrawl_enabled: bool = True
     provider: ProviderConfig = Field(default_factory=ProviderConfig)
     delivery: DeliveryConfig = Field(default_factory=DeliveryConfig)
     dashboard: DashboardConfig = Field(default_factory=DashboardConfig)

@@ -75,8 +75,10 @@ async def _run_pipeline(hours: int, provider: str | None, dry_run: bool) -> None
     articles = originals
 
     click.echo("▶ Stage 3: Extracting content")
-    articles = await extract_all(articles)
-    click.echo(f"  Extracted {len(articles)} articles")
+    articles = await extract_all(articles, firecrawl_enabled=cfg.firecrawl_enabled)
+    media_filtered = [a for a in articles if a.get("media_only")]
+    articles = [a for a in articles if not a.get("media_only")]
+    click.echo(f"  Extracted {len(articles)} articles (dropped {len(media_filtered)} media-only)")
 
     # Update DB with content
     with get_db() as conn:
