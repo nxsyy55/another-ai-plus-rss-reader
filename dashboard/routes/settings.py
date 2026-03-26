@@ -14,7 +14,33 @@ templates = Jinja2Templates(directory="templates/dashboard")
 
 @router.get("/", response_class=HTMLResponse)
 async def settings_page(request: Request):
-    return RedirectResponse(url="/", status_code=302)
+    import os
+    import httpx as _httpx
+    from aiNewReader.config import get_config
+    from aiNewReader.db import get_db, get_all_feeds
+
+    cfg = get_config()
+    with get_db() as conn:
+        feeds_all = get_all_feeds(conn)
+
+    provider_status = {
+        "anthropic": bool(os.environ.get("ANTHROPIC_API_KEY")),
+        "gemini": bool(os.environ.get("GEMINI_API_KEY")),
+        "deepseek": bool(os.environ.get("DEEPSEEK_API_KEY")),
+        "ollama": False,
+    }
+    try:
+        with _httpx.Client(timeout=2.0) as client:
+            r = client.get(f"{cfg.provider.ollama_base_url}/api/tags")
+            provider_status["ollama"] = r.status_code == 200
+    except Exception:
+        pass
+
+    return templates.TemplateResponse("settings.html", {
+        "request": request,
+        "cfg": cfg,
+        "provider_status": provider_status,
+    })
 
 
 @router.post("/save")

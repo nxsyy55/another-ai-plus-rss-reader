@@ -47,25 +47,31 @@ def _provider_status() -> dict:
 
 @app.get("/")
 async def index(request: Request):
-    from aiNewReader.db import get_db, get_last_run, get_all_feeds
-    from aiNewReader.config import get_config
+    import json
+    from datetime import datetime
+    from aiNewReader.db import get_db, get_last_run, get_all_feeds, get_latest_report
 
     with get_db() as conn:
-        last_run = dict(get_last_run(conn)) if get_last_run(conn) else None
+        last_run_row = get_last_run(conn)
+        last_run = dict(last_run_row) if last_run_row else None
         feeds_all = get_all_feeds(conn)
+        report_row = get_latest_report(conn)
 
-    healthy = sum(1 for f in feeds_all if f["healthy"])
-    unhealthy = len(feeds_all) - healthy
+    report = None
+    if report_row:
+        try:
+            report = json.loads(report_row["content"])
+        except Exception:
+            pass
 
-    cfg = get_config()
-    provider_status = _provider_status()
+    report_date = datetime.utcnow().strftime("%Y-%m-%d")
+    if last_run and last_run.get("started_at"):
+        report_date = last_run["started_at"][:10]
 
     return templates.TemplateResponse("index.html", {
         "request": request,
         "last_run": last_run,
         "total_feeds": len(feeds_all),
-        "healthy_feeds": healthy,
-        "unhealthy_feeds": unhealthy,
-        "cfg": cfg,
-        "provider_status": provider_status,
+        "report": report,
+        "report_date": report_date,
     })
