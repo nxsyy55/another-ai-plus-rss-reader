@@ -1,5 +1,6 @@
 # IDE / tools
 .claude/
+.firecrawl/
 
 # Python
 __pycache__/
@@ -14,6 +15,11 @@ venv/
 data/reader.db
 data/lancedb/
 output/digest-*.md
+output/scraped_*.md
+
+# Node (not used — prevent accidental commits)
+package-lock.json
+node_modules/
 
 # Secrets
 .env

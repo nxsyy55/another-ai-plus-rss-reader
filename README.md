@@ -1,4 +1,4 @@
-# Getting Started — aiNewReader
+# aiNewReader
 
 ## Prerequisites
 
@@ -10,7 +10,8 @@
 ## 1. Install dependencies
 
 ```bash
-cd I:\aiNewReader
+git clone <repo-url>
+cd aiNewReader
 uv sync
 ```
 
@@ -21,15 +22,17 @@ uv sync
 
 Pick one provider. Default is **Anthropic**.
 
+Create a `.env` file in the project root:
+
 ```bash
 # Anthropic (default)
-set ANTHROPIC_API_KEY=sk-ant-...
+ANTHROPIC_API_KEY=sk-ant-...
 
 # Gemini — also edit config.yaml: provider.default: gemini
-set GEMINI_API_KEY=...
+GEMINI_API_KEY=...
 
 # DeepSeek — also edit config.yaml: provider.default: deepseek
-set DEEPSEEK_API_KEY=...
+DEEPSEEK_API_KEY=...
 
 # Fully local (no API key) — edit config.yaml: provider.default: ollama
 # requires Ollama running with a chat model e.g. qwen3.5
@@ -98,7 +101,7 @@ Watch the stage output:
 
 Check the output:
 ```bash
-type output\digest-2026-03-18.md
+cat output/digest-$(date +%Y-%m-%d).md
 ```
 
 ---
@@ -170,11 +173,17 @@ python reader.py filter toggle "Topic"
 
 ---
 
-## Scheduling (Windows Task Scheduler)
+## Scheduling
 
-To run daily at 7am:
+**Linux/macOS (cron):**
+```bash
+# Run daily at 7am
+0 7 * * * cd /path/to/aiNewReader && uv run ainewreader --hours 24
 ```
-Program: python
-Arguments: I:\aiNewReader\reader.py --hours 24
-Start in: I:\aiNewReader
+
+**Windows (Task Scheduler):**
+```
+Program: uv
+Arguments: run ainewreader --hours 24
+Start in: C:\path\to\aiNewReader
 ```
