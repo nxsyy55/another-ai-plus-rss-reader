@@ -11,13 +11,9 @@
 
 ```bash
 cd I:\aiNewReader
-pip install -e .
+uv sync
 ```
 
-If `lancedb` fails to build on Windows:
-```bash
-pip install lancedb --no-build-isolation
-```
 
 ---
 
@@ -61,8 +57,8 @@ python reader.py feeds import myfeeds.opml
 
 **Option B — Add feeds one by one:**
 ```bash
-python reader.py feeds add "https://news.ycombinator.com/rss" --name "Hacker News"
-python reader.py feeds add "https://feeds.feedburner.com/oreilly/radar" --name "O'Reilly Radar"
+uv run ainewreader feeds add "https://news.ycombinator.com/rss" --name "Hacker News"
+uv run ainewreader feeds add "https://feeds.feedburner.com/oreilly/radar" --name "O'Reilly Radar"
 ```
 
 **Option C — Edit `feeds.yaml` directly**, then feeds sync automatically on next run.
@@ -72,9 +68,9 @@ python reader.py feeds add "https://feeds.feedburner.com/oreilly/radar" --name "
 ## 5. Sanity check
 
 ```bash
-python reader.py feeds list     # confirm feeds loaded
-python reader.py filter list    # confirm filter rules loaded
-python reader.py stats          # should say "No runs yet"
+uv run ainewreader feeds list     # confirm feeds loaded
+uv run ainewreader filter list    # confirm filter rules loaded
+uv run ainewreader stats          # should say "No runs yet"
 ```
 
 ---
@@ -84,7 +80,7 @@ python reader.py stats          # should say "No runs yet"
 Fetches, deduplicates, classifies, filters, and writes the digest — but skips email/Telegram delivery.
 
 ```bash
-python reader.py --dry-run
+uv run ainewreader --dry-run
 ```
 
 Watch the stage output:
@@ -110,7 +106,7 @@ type output\digest-2026-03-18.md
 ## 7. Start the dashboard
 
 ```bash
-python reader.py serve
+uv run ainewreader serve
 ```
 
 Open **http://localhost:8080**
@@ -128,9 +124,9 @@ Open **http://localhost:8080**
 ## 8. Run for real
 
 ```bash
-python reader.py                    # 24h window (default)
-python reader.py --hours 48         # custom window
-python reader.py --provider gemini  # override provider for this run
+uv run ainewreader                    # 24h window (default)
+uv run ainewreader --hours 48         # custom window
+uv run ainewreader --provider gemini  # override provider for this run
 ```
 
 ---

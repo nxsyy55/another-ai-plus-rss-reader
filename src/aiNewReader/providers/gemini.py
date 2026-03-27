@@ -44,10 +44,19 @@ class GeminiProvider:
             config=types.GenerateContentConfig(
                 system_instruction=_CLASSIFY_SYSTEM,
                 response_mime_type="application/json",
-                max_output_tokens=2048,
+                max_output_tokens=8192,
             ),
         )
-        data = json.loads(resp.text)
+        text = resp.text.strip()
+        if text.startswith("```json"):
+            text = text.removeprefix("```json").removesuffix("```").strip()
+            
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError as exc:
+            print(f"  [WARN] Gemini JSON decode failed for a batch: {exc}. Text snippet: {text[:100]}...")
+            raise exc
+
         # Unwrap the object wrapper; fall back gracefully if model omits it
         if isinstance(data, dict):
             items = data.get("articles", list(data.values())[0] if data else [])

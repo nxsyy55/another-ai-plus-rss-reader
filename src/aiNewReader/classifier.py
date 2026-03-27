@@ -5,7 +5,7 @@ from typing import Any
 from .db import get_db, set_article_tags
 from .providers import ArticleInput, get_provider
 
-BATCH_SIZE = 10
+BATCH_SIZE = 5
 
 
 def _make_snippet(article: dict[str, Any]) -> str:

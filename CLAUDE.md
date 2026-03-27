@@ -5,23 +5,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-# Install (editable)
-pip install -e .
-# Windows: if lancedb fails: pip install lancedb --no-build-isolation
+# Install and sync dependencies
+uv sync
 
 # Run full pipeline
-python reader.py
-python reader.py --hours 48 --provider gemini --dry-run
+uv run ainewreader
+uv run ainewreader --hours 48 --provider gemini --dry-run
 
 # Web dashboard (localhost:8080)
-python reader.py serve
+uv run ainewreader serve
 
 # Other CLI commands
-python reader.py search "query"
-python reader.py stats
-python reader.py feedback --url "..." --like
-python reader.py feeds list|add|remove|import|disable|enable
-python reader.py filter list|add|remove|toggle
+uv run ainewreader search "query"
+uv run ainewreader stats
+uv run ainewreader feedback --url "..." --like
+uv run ainewreader feeds list|add|remove|import|disable|enable
+uv run ainewreader filter list|add|remove|toggle
 
 # Ollama setup (required for embeddings/semantic dedup)
 ollama pull bge-m3

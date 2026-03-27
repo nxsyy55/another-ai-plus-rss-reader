@@ -28,3 +28,6 @@ dependencies = [
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[project.scripts]
+ainewreader = "aiNewReader.cli:main"

@@ -1,5 +1,5 @@
 rules:
-- id: 5
+- id: 1
   name: Sports (non-golf)
   action: exclude
   tags:
@@ -12,7 +12,7 @@ rules:
   keywords: []
   priority: 9
   enabled: true
-- id: 6
+- id: 2
   name: Music
   action: exclude
   tags:
@@ -23,7 +23,7 @@ rules:
   keywords: []
   priority: 8
   enabled: true
-- id: 2
+- id: 3
   name: Science
   action: include
   tags:
@@ -35,7 +35,15 @@ rules:
   keywords: []
   priority: 8
   enabled: true
-- id: 3
+- id: 5
+  name: 政治类
+  action: include
+  tags:
+  - politics，election，government，政治
+  keywords: []
+  priority: 8
+  enabled: true
+- id: 4
   name: Golf
   action: include
   tags:
@@ -45,14 +53,17 @@ rules:
   priority: 7
   enabled: true
 - id: 7
-  name: 政治类
+  name: stock
   action: include
   tags:
-  - politics，election，government，政治
-  keywords: []
+  - iran
+  keywords:
+  - iran
+  - trump
+  - stock
   priority: 5
   enabled: true
-- id: 8
+- id: 6
   name: 电视剧
   action: include
   tags:

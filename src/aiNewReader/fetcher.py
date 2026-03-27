@@ -22,6 +22,25 @@ def _normalize_date(dt: Any) -> datetime | None:
         if dt.tzinfo is None:
             return dt.replace(tzinfo=timezone.utc)
         return dt.astimezone(timezone.utc)
+    if isinstance(dt, str):
+        # Try standard RFC 2822 parsing first
+        from email.utils import parsedate_to_datetime
+        try:
+            parsed = parsedate_to_datetime(dt)
+            if parsed.tzinfo is None:
+                return parsed.replace(tzinfo=timezone.utc)
+            return parsed.astimezone(timezone.utc)
+        except (TypeError, ValueError):
+            pass
+        # Try dateutil parser for ISO 8601 and other formats
+        try:
+            from dateutil import parser
+            parsed = parser.parse(dt)
+            if parsed.tzinfo is None:
+                return parsed.replace(tzinfo=timezone.utc)
+            return parsed.astimezone(timezone.utc)
+        except Exception:
+            pass
     return None
 
 

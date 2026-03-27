@@ -179,6 +179,14 @@ def main(ctx: click.Context, hours: int | None, provider: str | None, dry_run: b
 def serve(port: int | None, host: str | None) -> None:
     """Start the web dashboard."""
     import uvicorn
+    import sys
+    import os
+    
+    # Ensure the current working directory is in sys.path so uvicorn can find dashboard.app
+    cwd = os.getcwd()
+    if cwd not in sys.path:
+        sys.path.insert(0, cwd)
+        
     cfg = get_config()
     uvicorn.run(
         "dashboard.app:app",

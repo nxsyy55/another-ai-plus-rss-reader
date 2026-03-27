@@ -1,0 +1,38 @@
+▶ Stage 1: Fetching feeds (last 24h)
+  Fetched: 300 articles
+▶ Stage 2: Deduplicating
+  After dedup: 191 (dropped 109)
+▶ Stage 3: Extracting content
+  Extracted 191 articles
+▶ Stage 4: Classifying
+  [WARN] classify batch failed: Expecting ',' delimiter: line 173 column 9 (char 3256)
+  [WARN] classify batch failed: Expecting property name enclosed in double quotes: line 75 column 10 (char 2281)
+  [WARN] classify batch failed: Expecting ',' delimiter: line 89 column 1 (char 2581)
+  [WARN] classify batch failed: Expecting value: line 75 column 53 (char 2087)
+  [WARN] classify batch failed: Expecting value: line 88 column 17 (char 2599)
+  [WARN] classify batch failed: Unterminated string starting at: line 197 column 7 (char 3588)
+  [WARN] classify batch failed: Expecting value: line 90 column 46 (char 3030)
+  [WARN] classify batch failed: Expecting value: line 192 column 25 (char 3484)
+  [WARN] classify batch failed: Unterminated string starting at: line 92 column 18 (char 2751)
+  [WARN] classify batch failed: Unterminated string starting at: line 77 column 18 (char 2413)
+  [WARN] classify batch failed: Expecting ',' delimiter: line 79 column 51 (char 2372)
+  Classified 191 articles
+▶ Stage 5: Filtering
+  After filter: 3
+▶ Stage 6: Auditing long articles
+  Audited: 0
+▶ Indexing to RAG store
+▶ Stage 7: Rendering digest
+  Digest: output\digest-2026-03-18.md
+▶ Stage 8: Delivery
+
+✓ Done. 3 articles in digest.
+
+
+https://rfa.org/mandarin/zhengzhi/2026/03/10//  403 Forbidden
+
+paywall like wsj
+
+show source old articles 十二月 06, 2019
+
+audio/video
