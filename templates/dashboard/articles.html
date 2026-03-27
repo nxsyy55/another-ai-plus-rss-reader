@@ -5,9 +5,8 @@
   <h1>Articles</h1>
   <form method="get" action="/articles/" class="form-row">
     <input name="q" value="{{ q }}" placeholder="Semantic search..." style="flex:1;min-width:200px">
-    <input name="tag" value="{{ tag }}" placeholder="Tag filter" style="width:160px">
     <button type="submit" class="btn btn-primary">Search</button>
-    {% if q or tag %}
+    {% if q %}
     <a href="/articles/" class="btn">Clear</a>
     {% endif %}
   </form>
@@ -20,85 +19,38 @@
       {{ art.pub_date[:10] if art.pub_date else '?' }}
       {% if art.word_count %} · {{ art.word_count }} words{% endif %}
     </div>
-    {% if art.tags %}
-    <div style="margin:0.3rem 0">
-      {% for tag in art.tags %}<span class="tag">{{ tag.tag if tag is mapping else tag }}</span>{% endfor %}
-    </div>
-    {% endif %}
-    {% if art.audit_summary %}
-    <div class="article-snippet">{{ art.audit_summary[:400] }}</div>
-    {% elif art.snippet %}
+    {% if art.snippet %}
     <div class="article-snippet">{{ art.snippet[:300] }}</div>
     {% elif art.raw_summary %}
     <div class="article-snippet">{{ art.raw_summary[:300] }}</div>
     {% endif %}
-    <div class="feedback-btns" data-url="{{ art.url }}" data-signal="{{ art.feedback_signal if art.feedback_signal is not none else 'null' }}">
-      <button class="btn btn-sm fb-btn fb-like {% if art.feedback_signal == 1 %}fb-active-like{% endif %}"
-              onclick="doFeedback(this, '{{ art.url }}', 1)">👍 Like</button>
-      <button class="btn btn-sm fb-btn fb-meh {% if art.feedback_signal == 0 %}fb-active-meh{% endif %}"
-              onclick="doFeedback(this, '{{ art.url }}', 0)">😐 Meh</button>
-      <button class="btn btn-sm fb-btn fb-dislike {% if art.feedback_signal == -1 %}fb-active-dislike{% endif %}"
-              onclick="doFeedback(this, '{{ art.url }}', -1)">👎 Dislike</button>
-    </div>
   </div>
   {% else %}
   <p>No articles found.</p>
   {% endfor %}
 
-  <div style="margin-top:1rem;display:flex;gap:0.5rem">
-    {% if has_prev %}<a href="?q={{ q }}&tag={{ tag }}&page={{ page - 1 }}" class="btn">← Prev</a>{% endif %}
-    {% if has_next %}<a href="?q={{ q }}&tag={{ tag }}&page={{ page + 1 }}" class="btn">Next →</a>{% endif %}
+  <div style="margin-top:1rem;display:flex;gap:0.5rem;align-items:center;">
+    {% if has_prev %}<a href="?q={{ q }}&page={{ page - 1 }}" class="btn">← Prev</a>{% endif %}
+    
+    <div style="display:flex; gap:0.25rem;">
+      {% for p in range(start_page, end_page + 1) %}
+        {% if p == page %}
+          <span class="btn" style="background:#1a1a2e;color:#fff;cursor:default;">{{ p }}</span>
+        {% else %}
+          <a href="?q={{ q }}&page={{ p }}" class="btn" style="background:#f0f0f0;color:#333;">{{ p }}</a>
+        {% endif %}
+      {% endfor %}
+    </div>
+
+    {% if has_next %}<a href="?q={{ q }}&page={{ page + 1 }}" class="btn">Next →</a>{% endif %}
   </div>
 </div>
 
 <style>
-  .fb-btn { background: #f0f0f0; color: #555; border: 1px solid #ddd; transition: background 0.15s, color 0.15s; }
-  .fb-btn:hover { background: #e0e0e0; }
-  .fb-active-like { background: #d4edda !important; color: #155724 !important; border-color: #28a745 !important; font-weight: 700; }
-  .fb-active-meh  { background: #fff3cd !important; color: #856404 !important; border-color: #ffc107 !important; font-weight: 700; }
-  .fb-active-dislike { background: #f8d7da !important; color: #721c24 !important; border-color: #dc3545 !important; font-weight: 700; }
-  .fb-saving { opacity: 0.5; pointer-events: none; }
+  .article-item { border-bottom: 1px solid #f0f0f0; padding: 1rem 0; }
+  .article-item:last-child { border-bottom: none; }
+  .article-title { font-weight: 600; font-size: 1rem; }
+  .article-meta { font-size: 0.8rem; color: #666; margin: 0.25rem 0; }
+  .article-snippet { font-size: 0.85rem; color: #444; margin-top: 0.25rem; }
 </style>
-
-<script>
-async function doFeedback(clickedBtn, url, newSignal) {
-  const container = clickedBtn.closest('.feedback-btns');
-  const currentSignal = container.dataset.signal === 'null' ? null : parseInt(container.dataset.signal);
-
-  // Clicking same button again toggles off (except meh which is always "clear")
-  const sendSignal = (newSignal !== 0 && currentSignal === newSignal) ? 0 : newSignal;
-
-  // Disable buttons during save
-  container.querySelectorAll('.fb-btn').forEach(b => b.classList.add('fb-saving'));
-
-  try {
-    const res = await fetch('/articles/feedback', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-      body: new URLSearchParams({url, signal: sendSignal}),
-    });
-    const data = await res.json();
-
-    // Update stored signal
-    container.dataset.signal = sendSignal === 0 ? 'null' : sendSignal;
-
-    // Update button states
-    const likeBtn    = container.querySelector('.fb-like');
-    const mehBtn     = container.querySelector('.fb-meh');
-    const dislikeBtn = container.querySelector('.fb-dislike');
-    likeBtn.classList.remove('fb-active-like');
-    mehBtn.classList.remove('fb-active-meh');
-    dislikeBtn.classList.remove('fb-active-dislike');
-
-    if (sendSignal === 1)  likeBtn.classList.add('fb-active-like');
-    if (sendSignal === 0)  mehBtn.classList.add('fb-active-meh');
-    if (sendSignal === -1) dislikeBtn.classList.add('fb-active-dislike');
-
-  } catch(e) {
-    console.error('Feedback error:', e);
-  } finally {
-    container.querySelectorAll('.fb-btn').forEach(b => b.classList.remove('fb-saving'));
-  }
-}
-</script>
 {% endblock %}

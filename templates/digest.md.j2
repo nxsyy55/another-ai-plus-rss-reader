@@ -1,7 +1,31 @@
 # AI News Reader Digest — {{ date }}
 _Generated: {{ generated_at }}_
 
-**Summary:** {{ run_stats.fetched }} fetched → {{ run_stats.after_dedup }} after dedup → {{ run_stats.after_filter }} kept → {{ run_stats.audited }} audited
+**Summary:** {{ run_stats.fetched }} fetched → {{ run_stats.after_dedup }} after dedup → {{ run_stats.extracted }} articles
+
+{% if report_data %}
+## Executive Summary
+{{ report_data.executive_summary }}
+
+{% if report_data.key_themes %}
+## Key Themes
+{% for theme in report_data.key_themes %}
+### {{ theme.theme }}
+{{ theme.insight }}
+*Related articles:*
+{% for art in theme.articles %}
+- [{{ art.title }}]({{ art.url }})
+{% endfor %}
+{% endfor %}
+{% endif %}
+
+{% if report_data.notable_picks %}
+## Notable Picks
+{% for pick in report_data.notable_picks %}
+- **[{{ pick.title }}]({{ pick.url }})**: {{ pick.reason }}
+{% endfor %}
+{% endif %}
+{% endif %}
 
 ---
 
@@ -11,7 +35,7 @@ _Generated: {{ generated_at }}_
 {% for art in topic_articles %}
 ### [{{ art.title }}]({{ art.url }})
 
-_{{ art.pub_date[:10] if art.pub_date else '?' }} · {{ art.language or '?' }}_ | Tags: {{ art.tags | map(attribute='tag') | join(', ') if art.tags else '—' }}
+_{{ art.pub_date[:10] if art.pub_date else '?' }} · {{ art.language or '?' }}_
 
 {% if art.audit_summary %}
 {{ art.audit_summary }}
@@ -22,3 +46,4 @@ _{{ art.pub_date[:10] if art.pub_date else '?' }} · {{ art.language or '?' }}_ 
 {% endfor %}
 ---
 {% endfor %}
+

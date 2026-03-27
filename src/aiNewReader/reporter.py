@@ -4,7 +4,7 @@ import json
 from typing import Any
 
 _REPORT_SYSTEM = """You are a senior news analyst writing a concise daily briefing.
-Given a list of today's filtered articles (with titles, URLs, tags, and summaries),
+Given the scraped markdown text of today's articles,
 produce a structured JSON report with these fields:
 - "executive_summary": 2-3 paragraphs of flowing prose covering the major themes
 - "key_themes": list of up to 5 objects, each with:
@@ -17,28 +17,14 @@ Write in the same language as the majority of articles. Be analytical, not just 
 Return ONLY the JSON object, no markdown fences."""
 
 
-def _build_user_message(articles: list[dict[str, Any]]) -> str:
-    items = []
-    for art in articles:
-        tags = [t["tag"] for t in art.get("tags", [])]
-        summary = art.get("audit_summary") or art.get("raw_summary", "")[:300]
-        items.append({
-            "title": art.get("title", ""),
-            "url": art.get("url", ""),
-            "tags": tags,
-            "summary": summary,
-        })
-    return json.dumps(items, ensure_ascii=False)
-
-
 def generate_report(
-    articles: list[dict[str, Any]],
+    combined_markdown: str,
     provider_name: str | None,
 ) -> dict[str, Any]:
     """Call LLM to generate a structured daily report. Returns parsed JSON dict."""
     from .providers import get_provider
 
-    if not articles:
+    if not combined_markdown.strip():
         return {
             "executive_summary": "No articles were collected in this run.",
             "key_themes": [],
@@ -46,16 +32,18 @@ def generate_report(
         }
 
     provider = get_provider(provider_name)
-    user_msg = _build_user_message(articles)
 
     try:
-        raw = provider.complete(_REPORT_SYSTEM, user_msg, max_tokens=2048)
-        # Strip markdown fences if present
-        if raw.startswith("```"):
-            raw = raw.split("```")[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
-        return json.loads(raw.strip())
+        raw = provider.complete(_REPORT_SYSTEM, combined_markdown, max_tokens=8192)
+        
+        # Robustly extract JSON block
+        raw = raw.strip()
+        start = raw.find("{")
+        end = raw.rfind("}")
+        if start != -1 and end != -1:
+            raw = raw[start:end + 1]
+            
+        return json.loads(raw)
     except Exception as exc:
         # Graceful degradation: return minimal report rather than crashing pipeline
         print(f"  [WARN] Report generation failed: {exc}")
@@ -64,3 +52,4 @@ def generate_report(
             "key_themes": [],
             "notable_picks": [],
         }
+

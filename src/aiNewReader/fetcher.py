@@ -88,7 +88,11 @@ async def _fetch_feed(
         return []
 
     articles: list[dict[str, Any]] = []
+    count = 0
     for entry in feed.entries:
+        if count >= 10:
+            break
+
         pub = _normalize_date(getattr(entry, "published", None) or getattr(entry, "updated", None))
         if pub and pub < since:
             continue
@@ -109,6 +113,7 @@ async def _fetch_feed(
             "content_hash": _content_hash(title, summary),
             "dedup_status": "original",
         })
+        count += 1
 
     return articles
 

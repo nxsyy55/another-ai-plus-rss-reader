@@ -20,8 +20,7 @@ class AnthropicProvider:
     def __init__(self) -> None:
         cfg = get_config()
         self._client = _anthropic.Anthropic()
-        self._classify_model = cfg.provider.classify_model
-        self._audit_model = cfg.provider.audit_model
+        self._model = cfg.provider.anthropic_model
 
     def classify(self, articles: list[ArticleInput]) -> list[ClassifyResult]:
         if not articles:
@@ -33,7 +32,7 @@ class AnthropicProvider:
         ], ensure_ascii=False)
 
         resp = self._client.messages.create(
-            model=self._classify_model,
+            model=self._model,
             max_tokens=2048,
             system=_CLASSIFY_SYSTEM,
             messages=[{"role": "user", "content": user_msg}],
@@ -62,7 +61,7 @@ class AnthropicProvider:
         }, ensure_ascii=False)
 
         resp = self._client.messages.create(
-            model=self._audit_model,
+            model=self._model,
             max_tokens=1024,
             system=_AUDIT_SYSTEM,
             messages=[{"role": "user", "content": user_msg}],
@@ -83,7 +82,7 @@ class AnthropicProvider:
 
     def complete(self, system: str, user: str, max_tokens: int = 2048) -> str:
         resp = self._client.messages.create(
-            model=self._audit_model,
+            model=self._model,
             max_tokens=max_tokens,
             system=system,
             messages=[{"role": "user", "content": user}],

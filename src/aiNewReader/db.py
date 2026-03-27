@@ -232,7 +232,7 @@ def complete_run(conn: sqlite3.Connection, run_id: int, stats: dict[str, Any], s
             datetime.utcnow().isoformat(),
             stats.get("fetched", 0),
             stats.get("after_dedup", 0),
-            stats.get("after_filter", 0),
+            stats.get("extracted") or stats.get("after_filter", 0),
             stats.get("audited", 0),
             status,
             error,
@@ -321,105 +321,6 @@ def update_article_audit(
            WHERE id=?""",
         (summary, classification_correct, excluded, article_id),
     )
-
-
-# ── Tag helpers ───────────────────────────────────────────────────────────────
-
-def set_article_tags(
-    conn: sqlite3.Connection, article_id: int, tags: list[dict[str, Any]]
-) -> None:
-    conn.execute("DELETE FROM article_tags WHERE article_id=?", (article_id,))
-    conn.executemany(
-        "INSERT INTO article_tags(article_id, tag, confidence, verified) VALUES (?,?,?,?)",
-        [(article_id, t["tag"], t.get("confidence", 1.0), t.get("verified", False)) for t in tags],
-    )
-
-
-def get_article_tags(conn: sqlite3.Connection, article_id: int) -> list[sqlite3.Row]:
-    return conn.execute(
-        "SELECT * FROM article_tags WHERE article_id=? ORDER BY confidence DESC",
-        (article_id,),
-    ).fetchall()
-
-
-# ── Filter rule helpers ───────────────────────────────────────────────────────
-
-def upsert_filter_rule(conn: sqlite3.Connection, rule: dict[str, Any]) -> None:
-    conn.execute(
-        """INSERT INTO filter_rules(name, action, tags, keywords, priority, enabled)
-           VALUES (?,?,?,?,?,?)
-           ON CONFLICT(name) DO UPDATE SET
-               action=excluded.action,
-               tags=excluded.tags,
-               keywords=excluded.keywords,
-               priority=excluded.priority,
-               enabled=excluded.enabled""",
-        (
-            rule["name"],
-            rule["action"],
-            json.dumps(rule.get("tags", [])),
-            json.dumps(rule.get("keywords", [])),
-            rule.get("priority", 5),
-            rule.get("enabled", True),
-        ),
-    )
-
-
-def get_all_filter_rules(conn: sqlite3.Connection) -> list[sqlite3.Row]:
-    return conn.execute(
-        "SELECT * FROM filter_rules ORDER BY priority DESC, name"
-    ).fetchall()
-
-
-def delete_filter_rule(conn: sqlite3.Connection, name: str) -> None:
-    conn.execute("DELETE FROM filter_rules WHERE name=?", (name,))
-
-
-# ── Feedback helpers ──────────────────────────────────────────────────────────
-
-def add_feedback(
-    conn: sqlite3.Connection, article_id: int, signal: int, embedding: bytes | None = None
-) -> None:
-    conn.execute(
-        "INSERT INTO feedback(article_id, signal, embedding) VALUES (?,?,?)",
-        (article_id, signal, embedding),
-    )
-
-
-def set_feedback(
-    conn: sqlite3.Connection, article_id: int, signal: int, embedding: bytes | None = None
-) -> None:
-    """Upsert feedback for an article. signal=0 clears feedback (meh/neutral)."""
-    conn.execute("DELETE FROM feedback WHERE article_id=?", (article_id,))
-    if signal != 0:
-        conn.execute(
-            "INSERT INTO feedback(article_id, signal, embedding) VALUES (?,?,?)",
-            (article_id, signal, embedding),
-        )
-
-
-def get_latest_feedback(conn: sqlite3.Connection, article_id: int) -> int | None:
-    """Return the most recent feedback signal for an article, or None if no feedback."""
-    row = conn.execute(
-        "SELECT signal FROM feedback WHERE article_id=? ORDER BY timestamp DESC LIMIT 1",
-        (article_id,),
-    ).fetchone()
-    return row["signal"] if row else None
-
-
-def get_feedback_embeddings(conn: sqlite3.Connection) -> list[sqlite3.Row]:
-    return conn.execute(
-        "SELECT signal, embedding FROM feedback WHERE embedding IS NOT NULL"
-    ).fetchall()
-
-
-def has_dislike_signal(conn: sqlite3.Connection, article_id: int) -> bool:
-    row = conn.execute(
-        "SELECT 1 FROM feedback WHERE article_id=? AND signal=-1 LIMIT 1",
-        (article_id,),
-    ).fetchone()
-    return row is not None
-
 
 def save_report(conn: sqlite3.Connection, run_id: int, content: str) -> int:
     cur = conn.execute(

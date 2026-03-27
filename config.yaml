@@ -18,12 +18,12 @@ health_check_interval_hours: 24
 hours_window: 24
 max_articles_per_run: 300
 provider:
-  audit_model: claude-haiku-4-5-20251001
+  audit_model: claude-sonnet-4-6
   classify_model: claude-haiku-4-5-20251001
   deepseek_audit_model: deepseek-chat
   deepseek_classify_model: deepseek-chat
   default: gemini
-  gemini_audit_model: gemini-3-flash-preview
+  gemini_audit_model: gemini-3.1-pro-preview
   gemini_classify_model: gemini-3-flash-preview
   ollama_base_url: http://localhost:11434
   ollama_chat_model: qwen3.5:9b

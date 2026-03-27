@@ -50,7 +50,6 @@
   <a href="/" {% if request.url.path == '/' %}class="active"{% endif %}>Daily Report</a>
   <a href="/settings/" {% if request.url.path.startswith('/settings') %}class="active"{% endif %}>Settings</a>
   <a href="/feeds/" {% if request.url.path.startswith('/feeds') %}class="active"{% endif %}>Feeds</a>
-  <a href="/filters/" {% if request.url.path.startswith('/filters') %}class="active"{% endif %}>Filters</a>
   <a href="/articles/" {% if request.url.path.startswith('/articles') %}class="active"{% endif %}>Articles</a>
 </nav>
 <div class="container">

@@ -10,8 +10,7 @@ import click
 import yaml
 
 from .config import load_config, get_config
-from .db import get_db, init_db, get_all_feeds, get_all_filter_rules, upsert_filter_rule, delete_filter_rule, get_last_run, upsert_feed
-
+from .db import get_db, init_db, get_all_feeds, get_last_run, upsert_feed
 
 # ── Pipeline ──────────────────────────────────────────────────────────────────
 
@@ -20,12 +19,7 @@ async def _run_pipeline(hours: int, provider: str | None, dry_run: bool) -> None
     from .fetcher import fetch_all_feeds, sync_feeds_from_yaml
     from .dedup import deduplicate
     from .extractor import extract_all
-    from .classifier import classify_articles
-    from .filter import sync_rules_from_yaml, filter_articles
-    from .auditor import audit_articles
-    from .feedback import compute_preference_scores
     from .renderer import render_digest
-    from .rag.store import index_articles_batch
     from .db import create_run, complete_run, insert_article, update_article_embedding, update_article_dedup
 
     cfg = get_config()
@@ -40,16 +34,15 @@ async def _run_pipeline(hours: int, provider: str | None, dry_run: bool) -> None
     health = await run_health_check(verbose=True)
     click.echo(f"  Feeds: {health['healthy']} healthy, {health['unhealthy']} unhealthy")
 
-    # Sync feeds and filters from YAML
+    # Sync feeds from YAML
     with open("feeds.yaml", encoding="utf-8") as f:
         feeds_data = yaml.safe_load(f) or {}
     sync_feeds_from_yaml(feeds_data.get("feeds", []))
-    sync_rules_from_yaml()
 
     with get_db() as conn:
         run_id = create_run(conn, hours, provider_name)
 
-    stats: dict[str, int] = {"fetched": 0, "after_dedup": 0, "after_filter": 0, "audited": 0}
+    stats: dict[str, int] = {"fetched": 0, "after_dedup": 0, "extracted": 0}
 
     click.echo(f"▶ Stage 1: Fetching feeds (last {hours}h)")
     articles = await fetch_all_feeds(hours)
@@ -86,59 +79,40 @@ async def _run_pipeline(hours: int, provider: str | None, dry_run: bool) -> None
         for art in articles:
             update_article_content(conn, art["id"], art.get("markdown_content", ""), art.get("word_count", 0))
 
-    click.echo("▶ Stage 4: Classifying")
-    articles = classify_articles(articles, provider_name)
-    click.echo(f"  Classified {len(articles)} articles")
+    stats["extracted"] = len(articles)
 
-    click.echo("▶ Stage 5: Filtering")
-    article_ids = [a["id"] for a in articles]
-    pref_scores = await compute_preference_scores(article_ids)
-    articles = filter_articles(articles, pref_scores)
-    click.echo(f"  After filter: {len(articles)}")
-    stats["after_filter"] = len(articles)
+    date_str = datetime.utcnow().strftime("%Y-%m-%d")
+    scraped_path = Path(f"output/scraped_{date_str}.md")
+    scraped_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(scraped_path, "w", encoding="utf-8") as f:
+        for art in articles:
+            f.write(f"# [{art.get('title', 'Unknown Title')}]({art.get('url', '')})\n\n")
+            f.write(art.get("markdown_content", "") + "\n\n---\n\n")
+    click.echo(f"  Saved combined markdown to {scraped_path}")
 
-    click.echo("▶ Stage 6: Auditing long articles")
-    articles = audit_articles(articles, cfg.audit_word_threshold, provider_name)
-    audited_count = sum(1 for a in articles if a.get("audit_summary"))
-    click.echo(f"  Audited: {audited_count}")
-    stats["audited"] = audited_count
+    combined_markdown = "\n\n".join(
+        f"# [{a.get('title', 'Unknown Title')}]({a.get('url', '')})\n{a.get('markdown_content', '')}"
+        for a in articles
+    )
 
-    # Re-filter post-audit reclassifications
-    re_eval = [a for a in articles if a.get("audit_classification_correct") is False]
-    if re_eval:
-        click.echo(f"  Re-evaluating {len(re_eval)} reclassified articles")
-        remaining = filter_articles(re_eval, pref_scores)
-        excluded_ids = {a["id"] for a in re_eval} - {a["id"] for a in remaining}
-        with get_db() as conn:
-            for art in articles:
-                if art["id"] in excluded_ids:
-                    from .db import update_article_audit
-                    conn.execute(
-                        "UPDATE articles SET excluded_post_audit=1 WHERE id=?", (art["id"],)
-                    )
-        articles = [a for a in articles if a["id"] not in excluded_ids]
-
-    click.echo("▶ Stage 6b: Generating daily report")
+    click.echo("▶ Stage 4: Generating daily report")
     from .reporter import generate_report
     from .db import save_report
-    report_data = generate_report(articles, provider_name)
+    report_data = generate_report(combined_markdown, provider_name)
     report_json = json.dumps(report_data, ensure_ascii=False)
     with get_db() as conn:
         save_report(conn, run_id, report_json)
     click.echo(f"  Report: {len(report_data.get('key_themes', []))} themes identified")
 
-    click.echo("▶ Indexing to RAG store")
-    index_articles_batch(articles)
-
-    click.echo("▶ Stage 7: Rendering digest")
+    click.echo("▶ Stage 5: Rendering digest")
     date_str = datetime.utcnow().strftime("%Y-%m-%d")
     output_path_str = cfg.delivery.markdown_output.replace("{date}", date_str)
     output_path = Path(output_path_str)
-    render_digest(articles, stats, output_path)
+    render_digest(articles, stats, output_path, report_data=report_data)
     click.echo(f"  Digest: {output_path}")
 
     if not dry_run:
-        click.echo("▶ Stage 8: Delivery")
+        click.echo("▶ Stage 6: Delivery")
         from .delivery.email import send_digest as email_digest
         from .delivery.telegram import send_digest as tg_digest
 
@@ -153,7 +127,7 @@ async def _run_pipeline(hours: int, provider: str | None, dry_run: bool) -> None
     with get_db() as conn:
         complete_run(conn, run_id, stats)
 
-    click.echo(f"\n✓ Done. {stats['after_filter']} articles in digest.")
+    click.echo(f"\n✓ Done. {len(articles)} articles in digest.")
 
 
 # ── CLI commands ──────────────────────────────────────────────────────────────
@@ -200,43 +174,22 @@ def serve(port: int | None, host: str | None) -> None:
 @click.argument("query")
 @click.option("--limit", default=10, type=int)
 @click.option("--language", default=None)
-@click.option("--tag", default=None)
-def search(query: str, limit: int, language: str | None, tag: str | None) -> None:
+def search(query: str, limit: int, language: str | None) -> None:
     """Semantic search over stored articles."""
     from .rag.query import search as rag_search
 
     async def _search() -> None:
-        results = await rag_search(query, limit=limit, language=language, tag=tag)
+        results = await rag_search(query, limit=limit, language=language)
         if not results:
             click.echo("No results.")
             return
         for r in results:
             click.echo(f"\n[{r['pub_date'][:10] if r.get('pub_date') else '?'}] {r['title']}")
             click.echo(f"  {r['url']}")
-            click.echo(f"  Tags: {', '.join(r['tags'])}")
             if r.get("snippet"):
                 click.echo(f"  {r['snippet'][:200]}")
 
     asyncio.run(_search())
-
-
-@main.command()
-@click.option("--url", required=True, help="Article URL")
-@click.option("--like", "signal", flag_value=1, help="Like this article")
-@click.option("--dislike", "signal", flag_value=-1, help="Dislike this article")
-def feedback(url: str, signal: int) -> None:
-    """Record article feedback."""
-    from .feedback import record_feedback
-
-    async def _fb() -> None:
-        ok = await record_feedback(url, signal)
-        if ok:
-            click.echo(f"Feedback recorded ({'like' if signal == 1 else 'dislike'}) for {url}")
-        else:
-            click.echo(f"Article not found: {url}", err=True)
-            sys.exit(1)
-
-    asyncio.run(_fb())
 
 
 @main.command()
@@ -253,95 +206,8 @@ def stats() -> None:
     click.echo(f"  Provider: {row['provider']}")
     click.echo(f"  Fetched: {row['articles_fetched']}")
     click.echo(f"  After dedup: {row['articles_after_dedup']}")
-    click.echo(f"  After filter: {row['articles_after_filter']}")
-    click.echo(f"  Audited: {row['articles_audited']}")
     if row["error_message"]:
         click.echo(f"  Error: {row['error_message']}")
-
-
-# ── Filter commands ───────────────────────────────────────────────────────────
-
-@main.group()
-def filter() -> None:
-    """Manage filter rules."""
-
-
-@filter.command("list")
-def filter_list() -> None:
-    """List all filter rules."""
-    init_db()
-    with get_db() as conn:
-        rows = get_all_filter_rules(conn)
-    if not rows:
-        click.echo("No rules.")
-        return
-    for r in rows:
-        status = "✓" if r["enabled"] else "✗"
-        tags = json.loads(r["tags"])
-        click.echo(f"[{status}] [{r['priority']:2d}] {r['action'].upper():8s} {r['name']}")
-        click.echo(f"         Tags: {', '.join(tags)}")
-
-
-@filter.command("add")
-@click.argument("name")
-@click.option("--tags", default="", help="Comma-separated tags")
-@click.option("--keywords", default="", help="Comma-separated keywords")
-@click.option("--include/--exclude", default=True)
-@click.option("--priority", default=5, type=int)
-def filter_add(name: str, tags: str, keywords: str, include: bool, priority: int) -> None:
-    """Add a filter rule."""
-    init_db()
-    rule = {
-        "name": name,
-        "action": "include" if include else "exclude",
-        "tags": [t.strip() for t in tags.split(",") if t.strip()],
-        "keywords": [k.strip() for k in keywords.split(",") if k.strip()],
-        "priority": priority,
-        "enabled": True,
-    }
-    with get_db() as conn:
-        upsert_filter_rule(conn, rule)
-    from .filter import save_rules_to_yaml, load_rules
-    with get_db() as conn:
-        all_rules = get_all_filter_rules(conn)
-    rules_data = [
-        {
-            "name": r["name"],
-            "action": r["action"],
-            "tags": json.loads(r["tags"]),
-            "keywords": json.loads(r["keywords"]),
-            "priority": r["priority"],
-            "enabled": bool(r["enabled"]),
-        }
-        for r in all_rules
-    ]
-    save_rules_to_yaml(rules_data)
-    click.echo(f"Added rule: {name}")
-
-
-@filter.command("remove")
-@click.argument("name")
-def filter_remove(name: str) -> None:
-    """Remove a filter rule."""
-    init_db()
-    with get_db() as conn:
-        delete_filter_rule(conn, name)
-    click.echo(f"Removed rule: {name}")
-
-
-@filter.command("toggle")
-@click.argument("name")
-def filter_toggle(name: str) -> None:
-    """Toggle a filter rule on/off."""
-    init_db()
-    with get_db() as conn:
-        row = conn.execute("SELECT * FROM filter_rules WHERE name=?", (name,)).fetchone()
-        if row is None:
-            click.echo(f"Rule not found: {name}", err=True)
-            return
-        new_state = not bool(row["enabled"])
-        conn.execute("UPDATE filter_rules SET enabled=? WHERE name=?", (new_state, name))
-    click.echo(f"Rule '{name}' {'enabled' if new_state else 'disabled'}")
 
 
 # ── Feed commands ─────────────────────────────────────────────────────────────

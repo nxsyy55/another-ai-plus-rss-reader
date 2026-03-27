@@ -26,8 +26,7 @@ class GeminiProvider:
         cfg = get_config()
         api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY", "")
         self._client = genai.Client(api_key=api_key)
-        self._classify_model = cfg.provider.gemini_classify_model
-        self._audit_model = cfg.provider.gemini_audit_model
+        self._model = cfg.provider.gemini_model
 
     def classify(self, articles: list[ArticleInput]) -> list[ClassifyResult]:
         if not articles:
@@ -39,7 +38,7 @@ class GeminiProvider:
         ], ensure_ascii=False)
 
         resp = self._client.models.generate_content(
-            model=self._classify_model,
+            model=self._model,
             contents=user_msg,
             config=types.GenerateContentConfig(
                 system_instruction=_CLASSIFY_SYSTEM,
@@ -75,7 +74,7 @@ class GeminiProvider:
         }, ensure_ascii=False)
 
         resp = self._client.models.generate_content(
-            model=self._audit_model,
+            model=self._model,
             contents=user_msg,
             config=types.GenerateContentConfig(
                 system_instruction=_AUDIT_SYSTEM,
@@ -93,7 +92,7 @@ class GeminiProvider:
 
     def complete(self, system: str, user: str, max_tokens: int = 2048) -> str:
         resp = self._client.models.generate_content(
-            model=self._audit_model,
+            model=self._model,
             contents=[{"role": "user", "parts": [{"text": user}]}],
             config=types.GenerateContentConfig(
                 system_instruction=system,

@@ -12,6 +12,7 @@ def render_digest(
     articles: list[dict[str, Any]],
     run_stats: dict[str, Any],
     output_path: Path,
+    report_data: dict[str, Any] | None = None,
 ) -> Path:
     """Render articles into a Markdown digest file using Jinja2 template."""
     # Group by primary tag
@@ -38,6 +39,7 @@ def render_digest(
         articles=articles,
         by_topic=dict(sorted(by_topic.items())),
         run_stats=run_stats,
+        report_data=report_data,
         generated_at=now.strftime("%Y-%m-%d %H:%M UTC"),
         date=now.strftime("%Y-%m-%d"),
     )
@@ -51,7 +53,28 @@ _FALLBACK_TEMPLATE = """\
 # AI News Reader Digest — {{ date }}
 _Generated: {{ generated_at }}_
 
-**Run Stats:** {{ run_stats.fetched }} fetched → {{ run_stats.after_dedup }} deduped → {{ run_stats.after_filter }} kept → {{ run_stats.audited }} audited
+**Summary:** {{ run_stats.fetched }} fetched → {{ run_stats.after_dedup }} after dedup → {{ run_stats.extracted }} articles
+
+{% if report_data %}
+## Executive Summary
+{{ report_data.executive_summary }}
+
+{% if report_data.key_themes %}
+## Key Themes
+{% for theme in report_data.key_themes %}
+### {{ theme.theme }}
+{{ theme.insight }}
+*Related:* {{ theme.articles | map(attribute='title') | join(', ') }}
+{% endfor %}
+{% endif %}
+
+{% if report_data.notable_picks %}
+## Notable Picks
+{% for pick in report_data.notable_picks %}
+- **[{{ pick.title }}]({{ pick.url }})**: {{ pick.reason }}
+{% endfor %}
+{% endif %}
+{% endif %}
 
 ---
 
@@ -60,14 +83,14 @@ _Generated: {{ generated_at }}_
 
 {% for art in topic_articles %}
 ### [{{ art.title }}]({{ art.url }})
-_{{ art.pub_date[:10] if art.pub_date else 'Unknown date' }}_
+_{{ art.pub_date[:10] if art.pub_date else '?' }}_
 {% if art.audit_summary %}
 {{ art.audit_summary }}
 {% elif art.raw_summary %}
 {{ art.raw_summary[:300] }}
 {% endif %}
-**Tags:** {{ art.tags | map(attribute='tag') | join(', ') if art.tags else '—' }}
 
 {% endfor %}
 {% endfor %}
 """
+

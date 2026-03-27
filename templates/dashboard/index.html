@@ -16,13 +16,13 @@
     </div>
     <div class="stat">
       <div class="value">{{ last_run.articles_after_filter or 0 }}</div>
-      <div class="label">Kept</div>
+      <div class="label">Extracted</div>
     </div>
     <div class="stat">
       <div class="value" style="color:{% if last_run.status == 'success' %}#28a745{% elif last_run.status == 'failed' %}#dc3545{% else %}#007bff{% endif %}">
         {{ last_run.status or '—' }}
       </div>
-      <div class="label">Last Run</div>
+      <div class="label">Status</div>
     </div>
     {% endif %}
   </div>

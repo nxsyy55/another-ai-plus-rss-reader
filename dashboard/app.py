@@ -11,13 +11,12 @@ from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from .routes import feeds, filters, articles, settings
+from .routes import feeds, articles, settings
 
 app = FastAPI(title="aiNewReader Dashboard", docs_url=None, redoc_url=None)
 
 # Mount routes
 app.include_router(feeds.router, prefix="/feeds", tags=["feeds"])
-app.include_router(filters.router, prefix="/filters", tags=["filters"])
 app.include_router(articles.router, prefix="/articles", tags=["articles"])
 app.include_router(settings.router, prefix="/settings", tags=["settings"])
 

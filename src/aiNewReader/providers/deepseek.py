@@ -20,14 +20,14 @@ class DeepSeekProvider:
     def __init__(self) -> None:
         import os
         cfg = get_config()
-        self._classify_model = cfg.provider.deepseek_classify_model
-        self._audit_model = cfg.provider.deepseek_audit_model
+        self._model = cfg.provider.deepseek_model
         self._client = OpenAI(
             api_key=os.environ.get("DEEPSEEK_API_KEY", ""),
             base_url=DEEPSEEK_BASE_URL,
         )
 
-    def _chat(self, system: str, user: str, model: str = "deepseek-chat") -> str:
+    def _chat(self, system: str, user: str, model: str | None = None) -> str:
+        model = model or self._model
         resp = self._client.chat.completions.create(
             model=model,
             messages=[
@@ -46,7 +46,7 @@ class DeepSeekProvider:
             {"article_id": a.id, "title": a.title, "snippet": a.snippet}
             for a in articles
         ], ensure_ascii=False)
-        raw = self._chat(_CLASSIFY_SYSTEM, user_msg, model=self._classify_model)
+        raw = self._chat(_CLASSIFY_SYSTEM, user_msg)
         data = json.loads(raw)
         if isinstance(data, dict):
             data = list(data.values())[0] if data else []
@@ -61,7 +61,7 @@ class DeepSeekProvider:
             "title": article.title,
             "content": article.snippet,
         }, ensure_ascii=False)
-        raw = self._chat(_AUDIT_SYSTEM, user_msg, model=self._audit_model)
+        raw = self._chat(_AUDIT_SYSTEM, user_msg)
         data = json.loads(raw)
         return AuditResult(
             article_id=article.id,
@@ -72,7 +72,7 @@ class DeepSeekProvider:
 
     def complete(self, system: str, user: str, max_tokens: int = 2048) -> str:
         resp = self._client.chat.completions.create(
-            model=self._audit_model,
+            model=self._model,
             messages=[
                 {"role": "system", "content": system},
                 {"role": "user", "content": user},
