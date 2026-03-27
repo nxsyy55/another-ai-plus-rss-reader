@@ -24,3 +24,7 @@ node_modules/
 # Secrets
 .env
 *.env
+
+# Personal config (use *.example files as templates)
+feeds.yaml
+filters.yaml

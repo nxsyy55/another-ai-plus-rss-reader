@@ -1,0 +1,30 @@
+rules:
+- id: 1
+  name: Sports
+  action: exclude
+  tags:
+  - sports
+  - football
+  - basketball
+  keywords: []
+  priority: 9
+  enabled: true
+- id: 2
+  name: Technology
+  action: include
+  tags:
+  - technology
+  - AI
+  - software
+  keywords: []
+  priority: 8
+  enabled: true
+- id: 3
+  name: Science
+  action: include
+  tags:
+  - science
+  - research
+  keywords: []
+  priority: 7
+  enabled: true
