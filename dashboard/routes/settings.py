@@ -26,7 +26,6 @@ async def settings_page(request: Request):
     provider_status = {
         "anthropic": bool(os.environ.get("ANTHROPIC_API_KEY")),
         "gemini": bool(os.environ.get("GEMINI_API_KEY")),
-        "deepseek": bool(os.environ.get("DEEPSEEK_API_KEY")),
         "ollama": False,
     }
     try:
@@ -46,21 +45,24 @@ async def settings_page(request: Request):
 @router.post("/save")
 async def save_settings(
     request: Request,
+    report_prompt: str = Form(...),
     hours_window: int = Form(24),
     max_articles_per_run: int = Form(300),
+    max_articles_per_source: int = Form(10),
     provider_default: str = Form("anthropic"),
     anthropic_model: str = Form("claude-sonnet-4-6"),
     gemini_model: str = Form("gemini-3.1-pro-preview"),
     ollama_base_url: str = Form("http://localhost:11434"),
     ollama_embed_model: str = Form("bge-m3"),
     ollama_chat_model: str = Form("qwen3.5:9b"),
-    deepseek_model: str = Form("deepseek-chat"),
 ):
     with open("config.yaml", encoding="utf-8") as f:
         data = yaml.safe_load(f) or {}
 
+    data["report_prompt"] = report_prompt
     data["hours_window"] = hours_window
     data["max_articles_per_run"] = max_articles_per_run
+    data["max_articles_per_source"] = max_articles_per_source
     if data.get("provider") is None:
         data["provider"] = {}
     data["provider"]["default"] = provider_default
@@ -69,10 +71,9 @@ async def save_settings(
     data["provider"]["ollama_base_url"] = ollama_base_url
     data["provider"]["ollama_embed_model"] = ollama_embed_model
     data["provider"]["ollama_chat_model"] = ollama_chat_model
-    data["provider"]["deepseek_model"] = deepseek_model
 
     # Cleanup old fields if they exist in yaml
-    for k in ["classify_model", "audit_model", "gemini_classify_model", "gemini_audit_model", "deepseek_classify_model", "deepseek_audit_model"]:
+    for k in ["classify_model", "audit_model", "gemini_classify_model", "gemini_audit_model", "deepseek_classify_model", "deepseek_audit_model", "deepseek_model"]:
         data["provider"].pop(k, None)
     data.pop("audit_word_threshold", None)
 

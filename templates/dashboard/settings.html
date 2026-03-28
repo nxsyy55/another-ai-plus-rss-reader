@@ -6,6 +6,10 @@
   <h1>Settings</h1>
   <form action="/settings/save" method="post">
 
+    <h2 style="margin-bottom:0.75rem">Report Prompt</h2>
+    <p style="font-size:0.85rem;color:#666;margin-bottom:0.5rem">Customize the system prompt sent to the LLM when generating the daily briefing.</p>
+    <textarea name="report_prompt" rows="12" style="width:100%;font-family:monospace;font-size:0.82rem;padding:0.5rem;border:1px solid #ccc;border-radius:4px;margin-bottom:1.5rem">{{ cfg.report_prompt }}</textarea>
+
     <h2 style="margin-bottom:0.75rem">General</h2>
     <table style="max-width:480px;margin-bottom:1.5rem">
       <tr>
@@ -17,10 +21,14 @@
         <td><input type="number" name="max_articles_per_run" value="{{ cfg.max_articles_per_run }}" style="width:100px"></td>
       </tr>
       <tr>
+        <th style="padding:0.5rem 1rem 0.5rem 0;white-space:nowrap">Max articles per source</th>
+        <td><input type="number" name="max_articles_per_source" value="{{ cfg.max_articles_per_source }}" style="width:100px"></td>
+      </tr>
+      <tr>
         <th style="padding:0.5rem 1rem 0.5rem 0;white-space:nowrap">Default provider</th>
         <td>
           <select name="provider_default">
-            {% for p in ['anthropic', 'gemini', 'ollama', 'deepseek'] %}
+            {% for p in ['anthropic', 'gemini', 'ollama'] %}
             <option value="{{ p }}" {% if cfg.provider.default == p %}selected{% endif %}>{{ p }}</option>
             {% endfor %}
           </select>
@@ -76,17 +84,6 @@
               <div><span style="font-size:0.8rem;color:#666;width:80px;display:inline-block">Embed:</span>
               <input name="ollama_embed_model" value="{{ cfg.provider.ollama_embed_model }}" style="width:120px"></div>
             </div>
-          </td>
-        </tr>
-        <tr>
-          <td><strong>DeepSeek</strong></td>
-          <td>{% if provider_status.deepseek %}<span class="badge badge-green">API key set</span>{% else %}<span class="badge badge-gray">No key</span>{% endif %}</td>
-          <td>
-            <select name="deepseek_model" style="width:280px">
-              {% for m in ['deepseek-chat','deepseek-reasoner'] %}
-              <option value="{{ m }}" {% if cfg.provider.deepseek_model == m %}selected{% endif %}>{{ m }}</option>
-              {% endfor %}
-            </select>
           </td>
         </tr>
       </tbody>

@@ -12,6 +12,11 @@ import yaml
 from .config import load_config, get_config
 from .db import get_db, init_db, get_all_feeds, get_last_run, upsert_feed
 
+
+def _truncate_words(text: str, max_words: int = 2000) -> str:
+    words = text.split()
+    return " ".join(words[:max_words]) if len(words) > max_words else text
+
 # ── Pipeline ──────────────────────────────────────────────────────────────────
 
 async def _run_pipeline(hours: int, provider: str | None, dry_run: bool) -> None:
@@ -81,6 +86,10 @@ async def _run_pipeline(hours: int, provider: str | None, dry_run: bool) -> None
 
     stats["extracted"] = len(articles)
 
+    empty_content = [a for a in articles if not a.get("markdown_content", "").strip()]
+    click.echo(f"  Empty content (skipped for report): {len(empty_content)}")
+    articles_with_content = [a for a in articles if a.get("markdown_content", "").strip()]
+
     date_str = datetime.utcnow().strftime("%Y-%m-%d")
     scraped_path = Path(f"output/scraped_{date_str}.md")
     scraped_path.parent.mkdir(parents=True, exist_ok=True)
@@ -91,8 +100,8 @@ async def _run_pipeline(hours: int, provider: str | None, dry_run: bool) -> None
     click.echo(f"  Saved combined markdown to {scraped_path}")
 
     combined_markdown = "\n\n".join(
-        f"# [{a.get('title', 'Unknown Title')}]({a.get('url', '')})\n{a.get('markdown_content', '')}"
-        for a in articles
+        f"# [{a.get('title', 'Unknown Title')}]({a.get('url', '')})\n{_truncate_words(a.get('markdown_content', ''))}"
+        for a in articles_with_content
     )
 
     click.echo("▶ Stage 4: Generating daily report")
@@ -108,7 +117,7 @@ async def _run_pipeline(hours: int, provider: str | None, dry_run: bool) -> None
     date_str = datetime.utcnow().strftime("%Y-%m-%d")
     output_path_str = cfg.delivery.markdown_output.replace("{date}", date_str)
     output_path = Path(output_path_str)
-    render_digest(articles, stats, output_path, report_data=report_data)
+    render_digest(articles_with_content, stats, output_path, report_data=report_data)
     click.echo(f"  Digest: {output_path}")
 
     if not dry_run:

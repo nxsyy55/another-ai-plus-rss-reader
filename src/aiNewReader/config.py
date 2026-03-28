@@ -34,7 +34,6 @@ class ProviderConfig(BaseModel):
     default: str = "anthropic"
     anthropic_model: str = "claude-sonnet-4-6"
     gemini_model: str = "gemini-3.1-pro-preview"
-    deepseek_model: str = "deepseek-chat"
     ollama_chat_model: str = "qwen3.5:9b"
     ollama_base_url: str = "http://localhost:11434"
     ollama_embed_model: str = "bge-m3"
@@ -45,11 +44,27 @@ class DashboardConfig(BaseModel):
     host: str = "localhost"
 
 
+_DEFAULT_REPORT_PROMPT = """You are a senior news analyst writing a concise daily briefing.
+Given the scraped markdown text of today's articles,
+produce a structured JSON report with these fields:
+- "executive_summary": 2-3 paragraphs of flowing prose covering the major themes
+- "key_themes": list of up to 5 objects, each with:
+    - "theme": short label (3-6 words)
+    - "insight": 1-2 sentence analysis
+    - "articles": list of {title, url} for the 2-4 most relevant articles
+- "notable_picks": list of up to 5 {title, url, reason} — standout articles worth reading
+
+Write in the same language as the majority of articles. Be analytical, not just descriptive.
+Return ONLY the JSON object, no markdown fences."""
+
+
 class AppConfig(BaseModel):
     hours_window: int = 24
     max_articles_per_run: int = 300
+    max_articles_per_source: int = 10
     health_check_interval_hours: int = 24
     firecrawl_enabled: bool = True
+    report_prompt: str = _DEFAULT_REPORT_PROMPT
     provider: ProviderConfig = Field(default_factory=ProviderConfig)
     delivery: DeliveryConfig = Field(default_factory=DeliveryConfig)
     dashboard: DashboardConfig = Field(default_factory=DashboardConfig)

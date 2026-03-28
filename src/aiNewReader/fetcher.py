@@ -53,6 +53,7 @@ async def _fetch_feed(
     client: httpx.AsyncClient,
     feed_row: Any,
     since: datetime,
+    max_per_source: int = 10,
 ) -> list[dict[str, Any]]:
     url = feed_row["url"]
     feed_id = feed_row["id"]
@@ -90,7 +91,7 @@ async def _fetch_feed(
     articles: list[dict[str, Any]] = []
     count = 0
     for entry in feed.entries:
-        if count >= 10:
+        if count >= max_per_source:
             break
 
         pub = _normalize_date(getattr(entry, "published", None) or getattr(entry, "updated", None))
@@ -129,7 +130,7 @@ async def fetch_all_feeds(hours: int) -> list[dict[str, Any]]:
         follow_redirects=True,
         headers={"User-Agent": "aiNewReader/0.1 (+https://github.com/local/ainewreader)"},
     ) as client:
-        tasks = [_fetch_feed(client, feed, since) for feed in feeds]
+        tasks = [_fetch_feed(client, feed, since, cfg.max_articles_per_source) for feed in feeds]
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
     articles: list[dict[str, Any]] = []

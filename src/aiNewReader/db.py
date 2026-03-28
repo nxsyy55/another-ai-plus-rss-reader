@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Generator
 
 DB_PATH = Path("data/reader.db")
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 
 def _get_conn(path: Path = DB_PATH) -> sqlite3.Connection:
@@ -129,6 +129,7 @@ def _create_schema(conn: sqlite3.Connection) -> None:
         CREATE INDEX IF NOT EXISTS idx_articles_url ON articles(url);
         CREATE INDEX IF NOT EXISTS idx_articles_pub_date ON articles(pub_date);
         CREATE INDEX IF NOT EXISTS idx_articles_run_id ON articles(run_id);
+        CREATE INDEX IF NOT EXISTS idx_articles_feed_id ON articles(feed_id);
         CREATE INDEX IF NOT EXISTS idx_article_tags_article_id ON article_tags(article_id);
         CREATE INDEX IF NOT EXISTS idx_feedback_article_id ON feedback(article_id);
         CREATE INDEX IF NOT EXISTS idx_reports_run_id ON reports(run_id);
@@ -164,6 +165,9 @@ def _migrate(conn: sqlite3.Connection) -> None:
         """)
         conn.execute("CREATE INDEX IF NOT EXISTS idx_reports_run_id ON reports(run_id)")
         _set_schema_version(conn, 2)
+    if current < 3:
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_articles_feed_id ON articles(feed_id)")
+        _set_schema_version(conn, 3)
 
 
 # ── Feed helpers ──────────────────────────────────────────────────────────────

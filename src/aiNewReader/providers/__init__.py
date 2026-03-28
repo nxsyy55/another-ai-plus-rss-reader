@@ -14,9 +14,6 @@ def get_provider(name: str | None = None) -> Provider:
     elif name == "gemini":
         from .gemini import GeminiProvider
         return GeminiProvider()
-    elif name == "deepseek":
-        from .deepseek import DeepSeekProvider
-        return DeepSeekProvider()
     else:
         from .ollama import OllamaProvider
         return OllamaProvider()

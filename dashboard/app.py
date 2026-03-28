@@ -11,7 +11,7 @@ from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from .routes import feeds, articles, settings
+from .routes import feeds, articles, settings, stats
 
 app = FastAPI(title="aiNewReader Dashboard", docs_url=None, redoc_url=None)
 
@@ -19,6 +19,7 @@ app = FastAPI(title="aiNewReader Dashboard", docs_url=None, redoc_url=None)
 app.include_router(feeds.router, prefix="/feeds", tags=["feeds"])
 app.include_router(articles.router, prefix="/articles", tags=["articles"])
 app.include_router(settings.router, prefix="/settings", tags=["settings"])
+app.include_router(stats.router, prefix="/stats", tags=["stats"])
 
 templates = Jinja2Templates(directory="templates/dashboard")
 
@@ -29,7 +30,6 @@ def _provider_status() -> dict:
     status = {
         "anthropic": bool(os.environ.get("ANTHROPIC_API_KEY")),
         "gemini": bool(os.environ.get("GEMINI_API_KEY")),
-        "deepseek": bool(os.environ.get("DEEPSEEK_API_KEY")),
         "ollama": False,
     }
     # Quick ping Ollama

@@ -3,18 +3,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-_REPORT_SYSTEM = """You are a senior news analyst writing a concise daily briefing.
-Given the scraped markdown text of today's articles,
-produce a structured JSON report with these fields:
-- "executive_summary": 2-3 paragraphs of flowing prose covering the major themes
-- "key_themes": list of up to 5 objects, each with:
-    - "theme": short label (3-6 words)
-    - "insight": 1-2 sentence analysis
-    - "articles": list of {title, url} for the 2-4 most relevant articles
-- "notable_picks": list of up to 5 {title, url, reason} — standout articles worth reading
-
-Write in the same language as the majority of articles. Be analytical, not just descriptive.
-Return ONLY the JSON object, no markdown fences."""
+from .config import get_config
 
 
 def generate_report(
@@ -34,7 +23,7 @@ def generate_report(
     provider = get_provider(provider_name)
 
     try:
-        raw = provider.complete(_REPORT_SYSTEM, combined_markdown, max_tokens=8192)
+        raw = provider.complete(get_config().report_prompt, combined_markdown, max_tokens=8192)
         
         # Robustly extract JSON block
         raw = raw.strip()
