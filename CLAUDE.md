@@ -42,13 +42,11 @@ No dedicated test suite or linter config exists in this project.
 ### Pipeline Stages (cli.py `_run_pipeline`)
 
 1. **Health** (`health.py`) — HTTP HEAD checks on feeds; verifies Ollama availability
-2. **Fetch** (`fetcher.py`) — async RSS fetch with ETag/Last-Modified caching; filters by time window
+2. **Fetch** (`fetcher.py`) — async RSS fetch with ETag/Last-Modified caching; filters by time window; capped at `max_articles_per_source` per feed (config, default 10)
 3. **Dedup** (`dedup.py`) — 3-layer: URL normalization → fuzzy title (rapidfuzz ≥80%) → semantic cosine similarity (bge-m3 embeddings ≥0.92)
-4. **Extract** (`extractor.py`) — parallel HTTP fetch + trafilatura markdown extraction (semaphore=10)
-5. **Classify** (`classifier.py`) — batched LLM tagging (batch=10) via provider abstraction
-6. **Filter** (`filter.py`) — rule-based include/exclude with preference score override (feedback-weighted)
-7. **Audit** (`auditor.py`) — LLM summarization + fact-check for articles >500 words; may reclassify
-8. **Render** (`renderer.py`) — Jinja2 digest template grouped by primary tag; delivery via email/Telegram
+4. **Extract** (`extractor.py`) — parallel HTTP fetch + trafilatura markdown extraction (semaphore=10); scraped `markdown_content` saved to DB
+5. **Report** (`reporter.py`) — single LLM call on all scraped content; empty-content articles skipped, each article truncated to 2000 words to save tokens; prompt configurable via `config.yaml`
+6. **Render** (`renderer.py`) — Jinja2 digest template; delivery via email/Telegram
 
 ### LLM Provider Abstraction (`src/aiNewReader/providers/`)
 
@@ -56,7 +54,7 @@ All providers implement the `Provider` protocol (`providers/base.py`):
 - `classify(articles: list[ArticleInput]) -> list[ClassifyResult]`
 - `audit(article: ArticleInput) -> AuditResult`
 
-Implementations: `anthropic.py`, `gemini.py`, `deepseek.py`, `ollama.py`. Provider is selected at runtime via `config.yaml` or `--provider` flag.
+Implementations: `anthropic.py`, `gemini.py`, `ollama.py`. Provider is selected at runtime via `config.yaml` or `--provider` flag. DeepSeek has been removed.
 
 ### Embeddings & Vector Store
 
@@ -65,13 +63,15 @@ Implementations: `anthropic.py`, `gemini.py`, `deepseek.py`, `ollama.py`. Provid
 
 ### Database (`db.py`)
 
-SQLite WAL mode at `data/reader.db`. Core tables: `articles`, `article_tags`, `filter_rules`, `feedback`, `runs`, `feeds`. All pipeline state is persisted here; the dashboard reads from it directly.
+SQLite WAL mode at `data/reader.db`. Core tables: `articles`, `article_tags`, `filter_rules`, `feedback`, `runs`, `feeds`, `reports`. Schema version 3. All pipeline state is persisted here; the dashboard reads from it directly.
 
 ### Configuration
 
-- `config.yaml` — global settings, provider/model selection, delivery config
+- `config.yaml` — global settings, provider/model selection, delivery config, editable report prompt
 - `feeds.yaml` / `filters.yaml` — synced bidirectionally with DB on CLI startup
 - `src/aiNewReader/config.py` — Pydantic models, singleton `get_config()`, env override `AINEWREADER_CONFIG`
+
+Key `AppConfig` fields: `hours_window`, `max_articles_per_run`, `max_articles_per_source` (per-feed cap, default 10), `report_prompt` (system prompt for the daily briefing LLM call, editable in Settings UI).
 
 ### Environment Variables
 
@@ -79,7 +79,6 @@ SQLite WAL mode at `data/reader.db`. Core tables: `articles`, `article_tags`, `f
 |---|---|
 | `ANTHROPIC_API_KEY` | Default provider |
 | `GEMINI_API_KEY` | Google Gemini |
-| `DEEPSEEK_API_KEY` | DeepSeek |
 | `AINEWREADER_CONFIG` | Path to config.yaml |
 
 **Key rule**: All API keys are stored in `.env` at the project root. `config.py` loads it with `load_dotenv(override=True)` so `.env` values **always win over system/user environment variables**. Never rely on Windows system environment variables for API keys — they can hold stale/invalid values that silently override the correct `.env` keys.
@@ -97,6 +96,13 @@ SQLite WAL mode at `data/reader.db`. Core tables: `articles`, `article_tags`, `f
 
 #### Ollama provider
 - Model name must include the tag (e.g. `qwen3.5:9b`, not `qwen3.5`). A missing tag causes a 404 from `/api/chat`.
+
+### Dashboard Routes (`dashboard/routes/`)
+
+- `feeds.py` — feed management (add/remove/disable/enable/import OPML)
+- `articles.py` — article browser with semantic search
+- `settings.py` — settings form; saves to `config.yaml`; fields include `report_prompt`, `max_articles_per_source`
+- `stats.py` — statistics page: run log (last 20), articles-per-source distribution, extraction quality (failures + word count buckets), today vs. 30-run historical comparison, token cost estimate (word_count × 1.33 × per-model pricing)
 
 ### Feedback & Preference Scoring (`feedback.py`)
 

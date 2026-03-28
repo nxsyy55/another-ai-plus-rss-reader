@@ -37,7 +37,6 @@ uv sync
 # Pick one:
 ANTHROPIC_API_KEY=sk-ant-...
 GEMINI_API_KEY=...
-DEEPSEEK_API_KEY=...
 # Or use Ollama (no key needed) — set provider.default: ollama in config.yaml
 ```
 
@@ -82,7 +81,14 @@ Output is saved to `output/digest-YYYY-MM-DD.md`.
 uv run ainewreader serve
 ```
 
-Open **http://localhost:8080** to browse articles, manage feeds, and configure settings.
+Open **http://localhost:8080** to browse articles, manage feeds, configure settings, and view pipeline statistics.
+
+Dashboard pages:
+- **Daily Report** — executive summary, key themes, notable picks from the latest run
+- **Settings** — provider/model selection, editable report prompt, per-source article cap
+- **Feeds** — add/remove/disable RSS feeds
+- **Articles** — browse all ingested articles with semantic search
+- **Stats** — run log, articles-per-source distribution, extraction quality, token cost estimate
 
 ---
 
@@ -128,7 +134,6 @@ Start in: C:\path\to\aiNewReader
 |---|---|
 | `ANTHROPIC_API_KEY` | Anthropic / Claude |
 | `GEMINI_API_KEY` | Google Gemini |
-| `DEEPSEEK_API_KEY` | DeepSeek |
 | `AINEWREADER_CONFIG` | Path to config.yaml (default: `config.yaml`) |
 
 ---
