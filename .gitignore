@@ -1,6 +1,13 @@
 # IDE / tools
 .claude/
 .firecrawl/
+.vscode/
+.idea/
+*.swp
+
+# OS files
+.DS_Store
+Thumbs.db
 
 # Python
 __pycache__/
@@ -10,12 +17,21 @@ dist/
 build/
 .venv/
 venv/
+.python-version
 
-# Runtime data
-data/reader.db
-data/lancedb/
-output/digest-*.md
-output/scraped_*.md
+# Version managers
+.tool-versions
+
+# Runtime data (ignore all but .gitkeep)
+data/*
+!data/.gitkeep
+output/*
+!output/.gitkeep
+
+# SQLite temp files
+data/*.db-wal
+data/*.db-shm
+data/*.db-journal
 
 # Node (not used — prevent accidental commits)
 package-lock.json
@@ -26,5 +42,6 @@ node_modules/
 *.env
 
 # Personal config (use *.example files as templates)
+config.yaml
 feeds.yaml
 filters.yaml
