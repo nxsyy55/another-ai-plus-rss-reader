@@ -39,6 +39,23 @@ async def remove_feed(url: str = Form(...)):
     return RedirectResponse(url="/feeds/", status_code=303)
 
 
+@router.post("/remove-batch")
+async def remove_feeds_batch(request: Request):
+    from fastapi.responses import RedirectResponse
+    from aiNewReader.fetcher import save_feeds_to_yaml
+    from aiNewReader.db import delete_feeds_batch
+    
+    form_data = await request.form()
+    urls = form_data.getlist("urls")
+    
+    if urls:
+        with get_db() as conn:
+            delete_feeds_batch(conn, urls)
+        save_feeds_to_yaml()
+        
+    return RedirectResponse(url="/feeds/", status_code=303)
+
+
 @router.post("/disable")
 async def disable_feed(url: str = Form(...)):
     from fastapi.responses import RedirectResponse

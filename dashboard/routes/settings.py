@@ -84,3 +84,10 @@ async def save_settings(
 
     load_config("config.yaml")
     return RedirectResponse(url="/", status_code=303)
+
+
+@router.post("/clean-paywalls")
+async def clean_paywalls_action():
+    from aiNewReader.cleaner import clean_paywalls
+    clean_paywalls(dry_run=False)
+    return RedirectResponse(url="/settings/?cleaned=1", status_code=303)

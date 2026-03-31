@@ -206,14 +206,28 @@ def get_all_feeds(conn: sqlite3.Connection) -> list[sqlite3.Row]:
 
 
 def delete_feed_by_url(conn: sqlite3.Connection, url: str) -> None:
-    row = conn.execute("SELECT id FROM feeds WHERE url=?", (url,)).fetchone()
-    if not row:
+    delete_feeds_batch(conn, [url])
+
+
+def delete_feeds_batch(conn: sqlite3.Connection, urls: list[str]) -> None:
+    if not urls:
         return
-    feed_id = row["id"]
-    conn.execute("DELETE FROM feedback WHERE article_id IN (SELECT id FROM articles WHERE feed_id=?)", (feed_id,))
-    conn.execute("DELETE FROM article_tags WHERE article_id IN (SELECT id FROM articles WHERE feed_id=?)", (feed_id,))
-    conn.execute("DELETE FROM articles WHERE feed_id=?", (feed_id,))
-    conn.execute("DELETE FROM feeds WHERE id=?", (feed_id,))
+    
+    # Get all feed IDs for these URLs
+    placeholders = ", ".join("?" for _ in urls)
+    rows = conn.execute(f"SELECT id FROM feeds WHERE url IN ({placeholders})", urls).fetchall()
+    feed_ids = [row["id"] for row in rows]
+    
+    if not feed_ids:
+        return
+        
+    id_placeholders = ", ".join("?" for _ in feed_ids)
+    
+    # Delete related data in order
+    conn.execute(f"DELETE FROM feedback WHERE article_id IN (SELECT id FROM articles WHERE feed_id IN ({id_placeholders}))", feed_ids)
+    conn.execute(f"DELETE FROM article_tags WHERE article_id IN (SELECT id FROM articles WHERE feed_id IN ({id_placeholders}))", feed_ids)
+    conn.execute(f"DELETE FROM articles WHERE feed_id IN ({id_placeholders})", feed_ids)
+    conn.execute(f"DELETE FROM feeds WHERE id IN ({id_placeholders})", feed_ids)
 
 
 def mark_feed_health(conn: sqlite3.Connection, feed_id: int, healthy: bool) -> None:

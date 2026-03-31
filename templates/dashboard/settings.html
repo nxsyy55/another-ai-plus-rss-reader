@@ -91,6 +91,24 @@
 
     <button type="submit" class="btn btn-primary">Save Settings</button>
   </form>
+
+  <hr style="margin: 2rem 0; border: 0; border-top: 1px solid #eee;">
+
+  <h2 style="margin-bottom:0.75rem">Data Management</h2>
+  <p style="font-size:0.85rem;color:#666;margin-bottom:1rem">
+    Automatically scan all stored articles and exclude those that are likely paywall stubs 
+    (word count &lt; 50 or containing keywords like "login", "subscribe").
+  </p>
+  
+  <form action="/settings/clean-paywalls" method="post" onsubmit="return confirm('Scan and exclude paywalled articles?')">
+    <button type="submit" class="btn" style="background:#dc3545;color:#fff">Clean Paywalled Articles</button>
+  </form>
+  
+  {% if request.query_params.get('cleaned') %}
+  <p style="color:#28a745;font-size:0.85rem;margin-top:0.5rem">
+    ✓ Paywall cleaning completed!
+  </p>
+  {% endif %}
 </div>
 
 {% endblock %}

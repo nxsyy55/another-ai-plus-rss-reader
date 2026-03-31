@@ -33,11 +33,28 @@
     </div>
   </div>
 
+  <div id="batch-actions" style="margin-bottom: 1rem; display: none;">
+    <form action="/feeds/remove-batch" method="post" onsubmit="return confirm('Remove selected feeds?')">
+      <div id="selected-urls-container"></div>
+      <button type="submit" class="btn btn-danger">Delete Selected</button>
+    </form>
+  </div>
+
   <table>
-    <thead><tr><th>Name</th><th>URL</th><th>Status</th><th>Articles</th><th>Actions</th></tr></thead>
+    <thead>
+      <tr>
+        <th style="width: 30px;"><input type="checkbox" id="select-all"></th>
+        <th>Name</th>
+        <th>URL</th>
+        <th>Status</th>
+        <th>Articles</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
     <tbody>
     {% for feed in feeds %}
     <tr>
+      <td><input type="checkbox" class="feed-checkbox" value="{{ feed.url }}"></td>
       <td>{{ feed.name or '—' }}</td>
       <td style="font-size:0.8rem;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ feed.url }}">{{ feed.url }}</td>
       <td>
@@ -73,4 +90,38 @@
   </table>
   <p style="font-size:0.8rem;color:#888;margin-top:0.75rem">{{ feeds|length }} feed(s) total</p>
 </div>
+
+<script>
+  const selectAll = document.getElementById('select-all');
+  const checkboxes = document.querySelectorAll('.feed-checkbox');
+  const batchActions = document.getElementById('batch-actions');
+  const container = document.getElementById('selected-urls-container');
+
+  function updateBatchActions() {
+    const selected = Array.from(checkboxes).filter(cb => cb.checked);
+    batchActions.style.display = selected.length > 0 ? 'block' : 'none';
+    
+    container.innerHTML = '';
+    selected.forEach(cb => {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'urls';
+      input.value = cb.value;
+      container.appendChild(input);
+    });
+  }
+
+  selectAll.addEventListener('change', () => {
+    checkboxes.forEach(cb => cb.checked = selectAll.checked);
+    updateBatchActions();
+  });
+
+  checkboxes.forEach(cb => {
+    cb.addEventListener('change', () => {
+      updateBatchActions();
+      if (!cb.checked) selectAll.checked = false;
+      else if (Array.from(checkboxes).every(c => c.checked)) selectAll.checked = true;
+    });
+  });
+</script>
 {% endblock %}

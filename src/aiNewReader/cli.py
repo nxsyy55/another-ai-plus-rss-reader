@@ -305,3 +305,28 @@ def feeds_enable(url: str) -> None:
     with get_db() as conn:
         conn.execute("UPDATE feeds SET enabled=1 WHERE url=?", (url,))
     click.echo(f"Enabled: {url}")
+
+
+@feeds.command("clean-paywalls")
+@click.option("--dry-run", is_flag=True, default=False, help="Identify but do not delete")
+def feeds_clean_paywalls(dry_run: bool) -> None:
+    """Identify and remove articles that are likely paywall stubs."""
+    from .cleaner import clean_paywalls
+    init_db()
+    
+    click.echo("▶ Cleaning paywalled articles...")
+    stats = clean_paywalls(dry_run=dry_run)
+    
+    click.echo(f"  Checked: {stats['checked']} articles")
+    click.echo(f"  Identified: {stats['identified']} paywalls")
+    
+    if not dry_run:
+        click.echo(f"  Marked {stats['deleted']} articles as excluded.")
+    else:
+        click.echo("  [Dry Run] No changes made.")
+        
+    if stats["polluted_feeds"]:
+        click.echo("\nPolluted feeds (top 10):")
+        sorted_feeds = sorted(stats["polluted_feeds"].items(), key=lambda x: x[1], reverse=True)
+        for feed, count in sorted_feeds[:10]:
+            click.echo(f"  - {feed}: {count} articles")
