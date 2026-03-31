@@ -47,6 +47,18 @@ Start in: C:\path\to\aiNewReader
 
 ---
 
+## Configuration (`config.yaml`)
+
+The hub feature can be configured in your `config.yaml`:
+
+```yaml
+hub:
+  enabled: true
+  path: "./hub"  # Directory for JSON exports
+```
+
+---
+
 ## External Dependencies
 
 The pipeline relies on several external tools for specialized tasks:

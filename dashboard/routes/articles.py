@@ -1,15 +1,31 @@
 from __future__ import annotations
 
 import asyncio
+import json
+import re
+import hashlib
+from datetime import datetime
+from pathlib import Path
 
 from fastapi import APIRouter, Request, Form, Query
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 
 from aiNewReader.db import get_db, init_db
+from aiNewReader.config import get_config
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates/dashboard")
+
+
+def slugify(text: str) -> str:
+    # Convert to lowercase
+    text = text.lower()
+    # Remove non-english letters (keep a-z and spaces/hyphens for now to convert to hyphens)
+    text = re.sub(r"[^a-z\s-]", "", text)
+    # Replace spaces and multiple hyphens with a single hyphen
+    text = re.sub(r"[\s-]+", "-", text).strip("-")
+    return text
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -86,3 +102,79 @@ async def article_detail(request: Request, article_id: int):
         "request": request,
         "article": article,
     })
+
+
+@router.post("/{article_id}/send-to-hub")
+async def send_to_hub(article_id: int):
+    config = get_config()
+    if not config.hub.enabled:
+        return JSONResponse({"status": "error", "message": "Hub is disabled in config"}, status_code=400)
+
+    hub_path = Path(config.hub.path)
+    hub_path.mkdir(parents=True, exist_ok=True)
+
+    with get_db() as conn:
+        # Fetch article
+        art_row = conn.execute("SELECT * FROM articles WHERE id = ?", (article_id,)).fetchone()
+        if not art_row:
+            return JSONResponse({"status": "error", "message": "Article not found"}, status_code=404)
+        article = dict(art_row)
+
+        # Fetch feed info
+        feed_row = conn.execute("SELECT * FROM feeds WHERE id = ?", (article["feed_id"],)).fetchone()
+        feed = dict(feed_row) if feed_row else {}
+
+        # Fetch tags
+        tag_rows = conn.execute("SELECT tag, confidence FROM article_tags WHERE article_id = ?", (article_id,)).fetchall()
+        tags = [{"name": row["tag"], "confidence": row["confidence"]} for row in tag_rows]
+
+    # Construct robust article_id (independent of DB auto-increment)
+    # Using URL hash ensures it is unique and reproducible across systems
+    url_hash = hashlib.sha256(article["url"].encode()).hexdigest()
+    article_id_str = f"art{url_hash[:16]}"
+
+    # Construct JSON object
+    hub_data = {
+        "article_id": article_id_str,
+        "title": article["title"],
+        "url": article["url"],
+        "source": {
+            "name": feed.get("name"),
+            "url": feed.get("url")
+        },
+        "published_at": article["pub_date"].isoformat() if isinstance(article["pub_date"], datetime) else article["pub_date"],
+        "collected_at": article["created_at"].isoformat() if isinstance(article["created_at"], datetime) else article["created_at"],
+        "content": {
+            "markdown": article["markdown_content"],
+            "word_count": article["word_count"],
+            "summary": article["raw_summary"]
+        },
+        "enrichment": {
+            "tags": tags,
+            "audit_summary": article["audit_summary"],
+            "classification_correct": bool(article["audit_classification_correct"]) if article["audit_classification_correct"] is not None else None
+        },
+        "version": "1.0"
+    }
+
+    # Generate robust filename: YYYYMMDDHASH.json (No symbols, purely alphanumeric)
+    date_part = "00000000"
+    if isinstance(article["pub_date"], datetime):
+        date_part = article["pub_date"].strftime("%Y%m%d")
+    elif isinstance(article["pub_date"], str) and len(article["pub_date"]) >= 10:
+        # Try extract YYYY-MM-DD to YYYYMMDD
+        raw_date = article["pub_date"][:10].replace("-", "").replace("/", "").replace(" ", "")
+        if len(raw_date) == 8:
+            date_part = raw_date
+    
+    # Filename uses date and first 12 chars of hash (robust, unique, no symbols)
+    filename = f"{date_part}{url_hash[:12]}.json"
+    file_path = hub_path / filename
+
+    try:
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(hub_data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        return JSONResponse({"status": "error", "message": f"Failed to save file: {str(e)}"}, status_code=500)
+
+    return {"status": "success", "message": f"Saved to {filename}"}

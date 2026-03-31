@@ -44,6 +44,11 @@ class DashboardConfig(BaseModel):
     host: str = "localhost"
 
 
+class HubConfig(BaseModel):
+    enabled: bool = True
+    path: str = "./hub"
+
+
 _DEFAULT_REPORT_PROMPT = """You are a senior news analyst writing a concise daily briefing.
 Given the scraped markdown text of today's articles,
 produce a structured JSON report with these fields:
@@ -68,6 +73,7 @@ class AppConfig(BaseModel):
     provider: ProviderConfig = Field(default_factory=ProviderConfig)
     delivery: DeliveryConfig = Field(default_factory=DeliveryConfig)
     dashboard: DashboardConfig = Field(default_factory=DashboardConfig)
+    hub: HubConfig = Field(default_factory=HubConfig)
 
 
 _config: AppConfig | None = None

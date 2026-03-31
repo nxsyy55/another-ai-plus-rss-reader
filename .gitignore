@@ -48,3 +48,5 @@ filters.yaml
 
 # superpowers
 docs/superpowers/
+
+hub/*.json

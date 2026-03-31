@@ -2,8 +2,9 @@
 {% block title %}{{ article.title }}{% endblock %}
 {% block content %}
 <div class="card">
-  <div style="margin-bottom: 1.5rem;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
     <a href="/articles/" class="btn" style="background:#f0f0f0;color:#333;">← Back to Articles</a>
+    <button id="btn-send-to-hub" class="btn" style="background:#4caf50;color:white;">Send to Hub</button>
   </div>
   
   <h1 style="margin-bottom:0.5rem">{{ article.title }}</h1>
@@ -36,6 +37,35 @@
     const rawContent = contentEl.textContent;
     targetEl.innerHTML = marked.parse(rawContent);
   }
+
+  // Send to Hub logic
+  document.getElementById('btn-send-to-hub').addEventListener('click', async function() {
+    const btn = this;
+    const originalText = btn.innerText;
+    btn.disabled = true;
+    btn.innerText = 'Sending...';
+    
+    try {
+      const response = await fetch(`/articles/{{ article.id }}/send-to-hub`, {
+        method: 'POST',
+      });
+      const data = await response.json();
+      
+      if (data.status === 'success') {
+        alert('Success: ' + data.message);
+        btn.innerText = 'Sent!';
+        btn.style.background = '#888';
+      } else {
+        alert('Error: ' + data.message);
+        btn.disabled = false;
+        btn.innerText = originalText;
+      }
+    } catch (error) {
+      alert('Error: ' + error.message);
+      btn.disabled = false;
+      btn.innerText = originalText;
+    }
+  });
 </script>
 
 <style>

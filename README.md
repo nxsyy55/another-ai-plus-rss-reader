@@ -92,3 +92,15 @@ Dashboard pages:
 - **Feeds** — manage RSS feeds (supports batch deletion)
 - **Articles** — browse all ingested articles with semantic search
 - **Stats** — run log, articles-per-source distribution, extraction quality, token cost estimate
+
+---
+
+## Hub (LLM Source of Truth)
+
+The "Send to Hub" feature allows you to export curated articles as standardized JSON files to a local `hub/` directory. 
+
+- **Purpose**: Acts as a "Source of Truth" for external LLMs, RAG pipelines, or long-term knowledge bases.
+- **Robust Naming**: Files are named `YYYYMMDD[HASH].json` to avoid symbol issues and handle non-English titles (like Chinese) gracefully.
+- **Schema**: Includes cleaned Markdown content, metadata, and AI-generated enrichments (tags, audit summaries).
+
+See [hub/README.md](hub/README.md) for the full JSON dictionary and evolution protocols.
