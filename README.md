@@ -15,6 +15,8 @@ The report is saved as a markdown digest and viewable in the web dashboard.
 ## Prerequisites
 
 - Python 3.12+
+- **Node.js 20+** (Required for high-quality content extraction)
+- **[Defuddle](https://github.com/kepano/defuddle)** (Installed via `npm install -g defuddle`)
 - (Optional) [Ollama](https://ollama.com) with `bge-m3` for semantic deduplication
 
 ---
@@ -69,6 +71,7 @@ uv run ainewreader                    # fetch last 24h, generate report
 uv run ainewreader --hours 48         # custom time window
 uv run ainewreader --provider gemini  # override provider for this run
 uv run ainewreader --dry-run          # skip delivery
+uv run ainewreader feeds clean-paywalls # remove low-quality/paywalled articles
 ```
 
 Output is saved to `output/digest-YYYY-MM-DD.md`.
@@ -85,7 +88,7 @@ Open **http://localhost:8080** to browse articles, manage feeds, configure setti
 
 Dashboard pages:
 - **Daily Report** — executive summary, key themes, notable picks from the latest run
-- **Settings** — provider/model selection, editable report prompt, per-source article cap
-- **Feeds** — add/remove/disable RSS feeds
+- **Settings** — provider/model selection, editable report prompt, per-source article cap, and **Data Management tools** (paywall cleaning)
+- **Feeds** — manage RSS feeds (supports batch deletion)
 - **Articles** — browse all ingested articles with semantic search
 - **Stats** — run log, articles-per-source distribution, extraction quality, token cost estimate

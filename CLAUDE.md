@@ -20,6 +20,7 @@ uv run ainewreader search "query"
 uv run ainewreader stats
 uv run ainewreader feedback --url "..." --like
 uv run ainewreader feeds list|add|remove|import|disable|enable
+uv run ainewreader feeds clean-paywalls [--dry-run]
 uv run ainewreader filter list|add|remove|toggle
 
 # Ollama setup (required for embeddings/semantic dedup)
@@ -44,7 +45,7 @@ No dedicated test suite or linter config exists in this project.
 1. **Health** (`health.py`) — HTTP HEAD checks on feeds; verifies Ollama availability
 2. **Fetch** (`fetcher.py`) — async RSS fetch with ETag/Last-Modified caching; filters by time window; capped at `max_articles_per_source` per feed (config, default 10)
 3. **Dedup** (`dedup.py`) — 3-layer: URL normalization → fuzzy title (rapidfuzz ≥80%) → semantic cosine similarity (bge-m3 embeddings ≥0.92)
-4. **Extract** (`extractor.py`) — parallel HTTP fetch + trafilatura markdown extraction (semaphore=10); scraped `markdown_content` saved to DB
+4. **Extract** (`extractor.py`) — parallel HTTP fetch + **Defuddle** (Node.js CLI) for high-quality Markdown extraction, falling back to **Trafilatura** (Python library); scraped `markdown_content` saved to DB. Requires `defuddle` to be installed globally via npm.
 5. **Report** (`reporter.py`) — single LLM call on all scraped content; empty-content articles skipped, each article truncated to 2000 words to save tokens; prompt configurable via `config.yaml`
 6. **Render** (`renderer.py`) — Jinja2 digest template; delivery via email/Telegram
 
@@ -63,7 +64,14 @@ Implementations: `anthropic.py`, `gemini.py`, `ollama.py`. Provider is selected 
 
 ### Database (`db.py`)
 
-SQLite WAL mode at `data/reader.db`. Core tables: `articles`, `article_tags`, `filter_rules`, `feedback`, `runs`, `feeds`, `reports`. Schema version 3. All pipeline state is persisted here; the dashboard reads from it directly.
+SQLite WAL mode at `data/reader.db`. Core tables: `articles`, `article_tags`, `filter_rules`, `feedback`, `runs`, `feeds`, `reports`. Schema version 4. Supports batch deletion of feeds and associated data. All pipeline state is persisted here; the dashboard reads from it directly.
+
+### Data Management & Cleaning (`cleaner.py`)
+
+Provides tools to clean "polluted" data sources (e.g., paywalls, stubs).
+- **Paywall Logic**: Identifies articles with `word_count` < 50 or containing keywords like "login", "subscribe", "members only", "paywall".
+- **Action**: Marks identified articles as `excluded_post_audit = 1` so they are skipped in future digests.
+- **Reporting**: Ranks feeds by "pollution" level (count of paywalled articles).
 
 ### Configuration
 
@@ -99,9 +107,9 @@ Key `AppConfig` fields: `hours_window`, `max_articles_per_run`, `max_articles_pe
 
 ### Dashboard Routes (`dashboard/routes/`)
 
-- `feeds.py` — feed management (add/remove/disable/enable/import OPML)
+- `feeds.py` — feed management (add/remove/disable/enable/import OPML). Supports **batch removal** via checkboxes.
 - `articles.py` — article browser with semantic search
-- `settings.py` — settings form; saves to `config.yaml`; fields include `report_prompt`, `max_articles_per_source`
+- `settings.py` — settings form; saves to `config.yaml`. Includes **Data Management** tools (trigger paywall cleaning).
 - `stats.py` — statistics page: run log (last 20), articles-per-source distribution, extraction quality (failures + word count buckets), today vs. 30-run historical comparison, token cost estimate (word_count × 1.33 × per-model pricing)
 
 ### Feedback & Preference Scoring (`feedback.py`)

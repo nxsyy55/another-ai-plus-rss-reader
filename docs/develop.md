@@ -16,6 +16,7 @@ uv run ainewreader feeds import feeds.opml
 uv run ainewreader feeds remove "https://..."
 uv run ainewreader feeds disable "https://..."
 uv run ainewreader feeds enable "https://..."
+uv run ainewreader feeds clean-paywalls     # exclude paywalled articles
 ```
 
 ---
@@ -46,11 +47,24 @@ Start in: C:\path\to\aiNewReader
 
 ---
 
+## External Dependencies
+
+The pipeline relies on several external tools for specialized tasks:
+
+| Dependency | Purpose | Install Command |
+| --- | --- | --- |
+| **Node.js** | Runtime for extraction tools | [nodejs.org](https://nodejs.org/) |
+| **Defuddle** | Primary Markdown extraction | `npm install -g defuddle` |
+| **Ollama** | Semantic dedup & search | [ollama.com](https://ollama.com/) |
+
+---
+
 ## Common errors
 
 | Error | Fix |
 |---|---|
 | `ModuleNotFoundError` | Run `uv sync` again |
 | `AuthenticationError` | API key missing or wrong in `.env` |
+| Defuddle skipped | Ensure `defuddle` is in your PATH (`npm install -g defuddle`) |
 | Semantic dedup skipped | Normal — Ollama not running; URL + fuzzy dedup still active |
 | 0 articles in digest | All filtered by dedup or media-only filter — try `--hours 48` |

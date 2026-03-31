@@ -3,6 +3,8 @@ from __future__ import annotations
 import asyncio
 import os
 import re
+import shutil
+import tempfile
 from typing import Any
 
 import httpx
@@ -43,24 +45,40 @@ def _extract_with_trafilatura(html: str, url: str) -> str | None:
     )
 
 
-# def _firecrawl_scrape(url: str) -> str | None:
-#     """Synchronous Firecrawl scrape — run via asyncio.to_thread()."""
-#     try:
-#         from firecrawl import FirecrawlApp
-#         api_key = os.environ.get("FIRECRAWL_API_KEY", "")
-#         if not api_key:
-#             return None
-#         app = FirecrawlApp(api_key=api_key)
-#         # Using v2 scrape method which returns a Document object
-#         result = app.scrape(url, params={"formats": ["markdown"], "onlyMainContent": True})
-#         if hasattr(result, "markdown"):
-#             return result.markdown
-#         if isinstance(result, dict):
-#             return result.get("markdown")
-#         return None
-#     except Exception as e:
-#         print(f"  [DEBUG] Firecrawl error for {url}: {e}")
-#         return None
+async def _extract_with_defuddle(html: str) -> str | None:
+    """Extract content using the defuddle CLI tool."""
+    if not shutil.which("defuddle"):
+        return None
+
+    # Use a temporary file since defuddle parse requires a file path or URL
+    fd, path = tempfile.mkstemp(suffix=".html")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as tmp:
+            tmp.write(html)
+
+        # Run defuddle parse --markdown
+        process = await asyncio.create_subprocess_exec(
+            "defuddle", "parse", path, "--markdown",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        stdout, stderr = await process.communicate()
+
+        if process.returncode == 0 and stdout:
+            # Clean up potential "Discarding URL" or other stderr-like noise from stdout if any
+            content = stdout.decode("utf-8", errors="ignore").strip()
+            # Some versions of defuddle might print debug info to stdout; 
+            # ideally we just want the markdown. 
+            if content:
+                return content
+        return None
+    except Exception:
+        return None
+    finally:
+        try:
+            os.remove(path)
+        except OSError:
+            pass
 
 
 async def extract_article(client: httpx.AsyncClient, article: dict[str, Any], firecrawl_enabled: bool = False) -> dict[str, Any]:
@@ -75,24 +93,30 @@ async def extract_article(client: httpx.AsyncClient, article: dict[str, Any], fi
         #     if markdown:
         #         full_content_extracted = True
 
-        # Stage B: fallback to trafilatura
+        # Stage B: try Defuddle (Best quality Markdown)
         if not markdown:
             try:
                 resp = await client.get(url, timeout=TIMEOUT)
                 if resp.status_code < 400:
-                    markdown = _extract_with_trafilatura(resp.text, url)
+                    html = resp.text
+                    markdown = await _extract_with_defuddle(html)
                     if markdown:
                         full_content_extracted = True
+                    else:
+                        # Stage C: fallback to trafilatura
+                        markdown = _extract_with_trafilatura(html, url)
+                        if markdown:
+                            full_content_extracted = True
             except Exception:
                 pass
 
-        # Stage C: fallback to RSS summary
+        # Stage D: final fallback to RSS summary
         if not markdown:
             markdown = article.get("raw_summary", "")
             full_content_extracted = False
 
-    word_count = _count_words(markdown)
-    article["markdown_content"] = markdown
+    word_count = _count_words(markdown or "")
+    article["markdown_content"] = markdown or ""
     article["word_count"] = word_count
     article["media_only"] = _is_media_only(url, word_count)
     article["full_content_extracted"] = full_content_extracted
