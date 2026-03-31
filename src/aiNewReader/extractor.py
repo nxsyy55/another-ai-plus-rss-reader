@@ -43,28 +43,37 @@ def _extract_with_trafilatura(html: str, url: str) -> str | None:
     )
 
 
-def _firecrawl_scrape(url: str) -> str | None:
-    """Synchronous Firecrawl scrape — run via asyncio.to_thread()."""
-    try:
-        from firecrawl import FirecrawlApp
-        api_key = os.environ.get("FIRECRAWL_API_KEY", "")
-        if not api_key:
-            return None
-        app = FirecrawlApp(api_key=api_key)
-        result = app.scrape_url(url, formats=["markdown"], only_main_content=True)
-        return result.markdown or None
-    except Exception:
-        return None
+# def _firecrawl_scrape(url: str) -> str | None:
+#     """Synchronous Firecrawl scrape — run via asyncio.to_thread()."""
+#     try:
+#         from firecrawl import FirecrawlApp
+#         api_key = os.environ.get("FIRECRAWL_API_KEY", "")
+#         if not api_key:
+#             return None
+#         app = FirecrawlApp(api_key=api_key)
+#         # Using v2 scrape method which returns a Document object
+#         result = app.scrape(url, params={"formats": ["markdown"], "onlyMainContent": True})
+#         if hasattr(result, "markdown"):
+#             return result.markdown
+#         if isinstance(result, dict):
+#             return result.get("markdown")
+#         return None
+#     except Exception as e:
+#         print(f"  [DEBUG] Firecrawl error for {url}: {e}")
+#         return None
 
 
-async def extract_article(client: httpx.AsyncClient, article: dict[str, Any], firecrawl_enabled: bool) -> dict[str, Any]:
+async def extract_article(client: httpx.AsyncClient, article: dict[str, Any], firecrawl_enabled: bool = False) -> dict[str, Any]:
     url = article["url"]
     markdown: str | None = None
+    full_content_extracted = False
 
     async with SEMAPHORE:
         # Stage A: try Firecrawl (handles paywalls, JS rendering)
-        if firecrawl_enabled:
-            markdown = await asyncio.to_thread(_firecrawl_scrape, url)
+        # if firecrawl_enabled:
+        #     markdown = await asyncio.to_thread(_firecrawl_scrape, url)
+        #     if markdown:
+        #         full_content_extracted = True
 
         # Stage B: fallback to trafilatura
         if not markdown:
@@ -72,21 +81,25 @@ async def extract_article(client: httpx.AsyncClient, article: dict[str, Any], fi
                 resp = await client.get(url, timeout=TIMEOUT)
                 if resp.status_code < 400:
                     markdown = _extract_with_trafilatura(resp.text, url)
+                    if markdown:
+                        full_content_extracted = True
             except Exception:
                 pass
 
         # Stage C: fallback to RSS summary
         if not markdown:
             markdown = article.get("raw_summary", "")
+            full_content_extracted = False
 
     word_count = _count_words(markdown)
     article["markdown_content"] = markdown
     article["word_count"] = word_count
     article["media_only"] = _is_media_only(url, word_count)
+    article["full_content_extracted"] = full_content_extracted
     return article
 
 
-async def extract_all(articles: list[dict[str, Any]], firecrawl_enabled: bool = True) -> list[dict[str, Any]]:
+async def extract_all(articles: list[dict[str, Any]], firecrawl_enabled: bool = False) -> list[dict[str, Any]]:
     async with httpx.AsyncClient(
         follow_redirects=True,
         headers={"User-Agent": "aiNewReader/0.1"},

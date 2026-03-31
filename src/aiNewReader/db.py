@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Generator
 
 DB_PATH = Path("data/reader.db")
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 
 def _get_conn(path: Path = DB_PATH) -> sqlite3.Connection:
@@ -69,6 +69,7 @@ def _create_schema(conn: sqlite3.Connection) -> None:
             articles_after_dedup  INTEGER DEFAULT 0,
             articles_after_filter INTEGER DEFAULT 0,
             articles_audited      INTEGER DEFAULT 0,
+            articles_extraction_failed INTEGER DEFAULT 0,
             status                TEXT DEFAULT 'running',
             error_message         TEXT
         );
@@ -78,12 +79,13 @@ def _create_schema(conn: sqlite3.Connection) -> None:
             url                          TEXT UNIQUE NOT NULL,
             title                        TEXT,
             pub_date                     DATETIME,
-            feed_id                      INTEGER REFERENCES feeds(id),
+            feed_id                      INTEGER REFERENCES feeds(id) ON DELETE CASCADE,
             language                     TEXT,
             raw_summary                  TEXT,
             markdown_content             TEXT,
             word_count                   INTEGER,
             content_hash                 TEXT,
+            full_content_extracted       BOOLEAN DEFAULT 0,
             embedding                    BLOB,
             run_id                       INTEGER REFERENCES runs(id),
             dedup_status                 TEXT DEFAULT 'original',
@@ -168,6 +170,14 @@ def _migrate(conn: sqlite3.Connection) -> None:
     if current < 3:
         conn.execute("CREATE INDEX IF NOT EXISTS idx_articles_feed_id ON articles(feed_id)")
         _set_schema_version(conn, 3)
+    if current < 4:
+        try:
+            conn.execute("ALTER TABLE runs ADD COLUMN articles_extraction_failed INTEGER DEFAULT 0")
+        except sqlite3.OperationalError: pass
+        try:
+            conn.execute("ALTER TABLE articles ADD COLUMN full_content_extracted BOOLEAN DEFAULT 0")
+        except sqlite3.OperationalError: pass
+        _set_schema_version(conn, 4)
 
 
 # ── Feed helpers ──────────────────────────────────────────────────────────────
@@ -193,6 +203,17 @@ def get_feed_by_url(conn: sqlite3.Connection, url: str) -> sqlite3.Row | None:
 
 def get_all_feeds(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     return conn.execute("SELECT * FROM feeds ORDER BY name").fetchall()
+
+
+def delete_feed_by_url(conn: sqlite3.Connection, url: str) -> None:
+    row = conn.execute("SELECT id FROM feeds WHERE url=?", (url,)).fetchone()
+    if not row:
+        return
+    feed_id = row["id"]
+    conn.execute("DELETE FROM feedback WHERE article_id IN (SELECT id FROM articles WHERE feed_id=?)", (feed_id,))
+    conn.execute("DELETE FROM article_tags WHERE article_id IN (SELECT id FROM articles WHERE feed_id=?)", (feed_id,))
+    conn.execute("DELETE FROM articles WHERE feed_id=?", (feed_id,))
+    conn.execute("DELETE FROM feeds WHERE id=?", (feed_id,))
 
 
 def mark_feed_health(conn: sqlite3.Connection, feed_id: int, healthy: bool) -> None:
@@ -229,6 +250,7 @@ def complete_run(conn: sqlite3.Connection, run_id: int, stats: dict[str, Any], s
             articles_after_dedup=?,
             articles_after_filter=?,
             articles_audited=?,
+            articles_extraction_failed=?,
             status=?,
             error_message=?
         WHERE id=?""",
@@ -238,6 +260,7 @@ def complete_run(conn: sqlite3.Connection, run_id: int, stats: dict[str, Any], s
             stats.get("after_dedup", 0),
             stats.get("extracted") or stats.get("after_filter", 0),
             stats.get("audited", 0),
+            stats.get("extraction_failed", 0),
             status,
             error,
             run_id,
@@ -257,7 +280,7 @@ def insert_article(conn: sqlite3.Connection, data: dict[str, Any]) -> int:
     keys = [
         "url", "title", "pub_date", "feed_id", "language",
         "raw_summary", "markdown_content", "word_count",
-        "content_hash", "embedding", "run_id", "dedup_status",
+        "full_content_extracted", "content_hash", "embedding", "run_id", "dedup_status",
     ]
     cols = ", ".join(k for k in keys if k in data)
     placeholders = ", ".join("?" for k in keys if k in data)
@@ -298,11 +321,11 @@ def update_article_embedding(conn: sqlite3.Connection, article_id: int, embeddin
 
 
 def update_article_content(
-    conn: sqlite3.Connection, article_id: int, markdown: str, word_count: int, language: str | None = None
+    conn: sqlite3.Connection, article_id: int, markdown: str, word_count: int, full_extracted: bool = False, language: str | None = None
 ) -> None:
     conn.execute(
-        "UPDATE articles SET markdown_content=?, word_count=?, language=? WHERE id=?",
-        (markdown, word_count, language, article_id),
+        "UPDATE articles SET markdown_content=?, word_count=?, full_content_extracted=?, language=? WHERE id=?",
+        (markdown, word_count, full_extracted, language, article_id),
     )
 
 

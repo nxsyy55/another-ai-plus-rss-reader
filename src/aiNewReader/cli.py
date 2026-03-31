@@ -73,7 +73,7 @@ async def _run_pipeline(hours: int, provider: str | None, dry_run: bool) -> None
     articles = originals
 
     click.echo("▶ Stage 3: Extracting content")
-    articles = await extract_all(articles, firecrawl_enabled=cfg.firecrawl_enabled)
+    articles = await extract_all(articles)
     media_filtered = [a for a in articles if a.get("media_only")]
     articles = [a for a in articles if not a.get("media_only")]
     click.echo(f"  Extracted {len(articles)} articles (dropped {len(media_filtered)} media-only)")
@@ -82,9 +82,16 @@ async def _run_pipeline(hours: int, provider: str | None, dry_run: bool) -> None
     with get_db() as conn:
         from .db import update_article_content
         for art in articles:
-            update_article_content(conn, art["id"], art.get("markdown_content", ""), art.get("word_count", 0))
+            update_article_content(
+                conn, 
+                art["id"], 
+                art.get("markdown_content", ""), 
+                art.get("word_count", 0),
+                full_extracted=art.get("full_content_extracted", False)
+            )
 
     stats["extracted"] = len(articles)
+    stats["extraction_failed"] = sum(1 for a in articles if not a.get("full_content_extracted", False))
 
     empty_content = [a for a in articles if not a.get("markdown_content", "").strip()]
     click.echo(f"  Empty content (skipped for report): {len(empty_content)}")
@@ -260,8 +267,9 @@ def feeds_add(url: str, name: str | None) -> None:
 def feeds_remove(url: str) -> None:
     """Permanently remove a feed."""
     init_db()
+    from .db import delete_feed_by_url
     with get_db() as conn:
-        conn.execute("DELETE FROM feeds WHERE url=?", (url,))
+        delete_feed_by_url(conn, url)
     from .fetcher import save_feeds_to_yaml
     save_feeds_to_yaml()
     click.echo(f"Removed: {url}")

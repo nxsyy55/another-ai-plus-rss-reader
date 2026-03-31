@@ -71,3 +71,18 @@ async def articles_page(
         "has_next": offset + limit < total,
         "has_prev": page > 1,
     })
+
+
+@router.get("/{article_id}", response_class=HTMLResponse)
+async def article_detail(request: Request, article_id: int):
+    init_db()
+    with get_db() as conn:
+        row = conn.execute("SELECT * FROM articles WHERE id = ?", (article_id,)).fetchone()
+        if not row:
+            return HTMLResponse(content="Article not found", status_code=404)
+        article = dict(row)
+    
+    return templates.TemplateResponse("article_detail.html", {
+        "request": request,
+        "article": article,
+    })

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
-from aiNewReader.db import get_db
+from aiNewReader.db import get_db, init_db
 from aiNewReader.config import get_config
 
 router = APIRouter()
@@ -24,11 +24,12 @@ BUCKET_ORDER = ["0-200", "200-500", "500-1000", "1000-2000", "2000+"]
 
 @router.get("/", response_class=HTMLResponse)
 async def stats_page(request: Request):
+    init_db()
     with get_db() as conn:
         # Last 20 runs
         run_rows = conn.execute("""
             SELECT id, started_at, completed_at, provider, articles_fetched,
-                   articles_after_dedup, articles_after_filter, status,
+                   articles_after_dedup, articles_after_filter, articles_extraction_failed, status,
                    CAST(ROUND((JULIANDAY(COALESCE(completed_at, started_at)) - JULIANDAY(started_at)) * 86400) AS INTEGER) as duration_seconds
             FROM runs ORDER BY started_at DESC LIMIT 20
         """).fetchall()
@@ -66,7 +67,7 @@ async def stats_page(request: Request):
             # Extraction stats for last run
             ext_row = conn.execute("""
                 SELECT COUNT(*) as total,
-                       SUM(CASE WHEN markdown_content IS NULL OR markdown_content='' THEN 1 ELSE 0 END) as failed
+                       SUM(CASE WHEN full_content_extracted=0 THEN 1 ELSE 0 END) as failed
                 FROM articles WHERE run_id=? AND dedup_status='original'
             """, (last_run_id,)).fetchone()
 

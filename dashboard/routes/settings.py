@@ -7,6 +7,7 @@ from fastapi.templating import Jinja2Templates
 import yaml
 
 from aiNewReader.config import get_config, load_config
+from aiNewReader.db import init_db
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates/dashboard")
@@ -19,6 +20,7 @@ async def settings_page(request: Request):
     from aiNewReader.config import get_config
     from aiNewReader.db import get_db, get_all_feeds
 
+    init_db()
     cfg = get_config()
     with get_db() as conn:
         feeds_all = get_all_feeds(conn)

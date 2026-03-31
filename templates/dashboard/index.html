@@ -54,23 +54,24 @@
     <p style="font-size:0.9rem;color:#444;margin-bottom:0.4rem">{{ theme.insight }}</p>
     <ul style="font-size:0.85rem;margin:0;padding-left:1.25rem">
       {% for art in theme.articles %}
-      <li><a href="{{ art.url }}" target="_blank" rel="noopener">{{ art.title }}</a></li>
+      <li><a href="{% if art.id %}/articles/{{ art.id }}{% else %}{{ art.url }}{% endif %}" rel="noopener">{{ art.title }}</a></li>
       {% endfor %}
     </ul>
-  </div>
-  {% endfor %}
-  {% endif %}
+    </div>
+    {% endfor %}
+    {% endif %}
 
-  {# Notable Picks #}
-  {% if report.notable_picks %}
-  <h2 style="margin-bottom:1rem;border-top:1px solid #eee;padding-top:1rem">Notable Picks</h2>
-  {% for pick in report.notable_picks %}
-  <div style="margin-bottom:0.75rem">
-    <a href="{{ pick.url }}" target="_blank" rel="noopener" style="font-weight:600">{{ pick.title }}</a>
+    {# Notable Picks #}
+    {% if report.notable_picks %}
+    <h2 style="margin-bottom:1rem;border-top:1px solid #eee;padding-top:1rem">Notable Picks</h2>
+    {% for pick in report.notable_picks %}
+    <div style="margin-bottom:0.75rem">
+    <a href="{% if pick.id %}/articles/{{ pick.id }}{% else %}{{ pick.url }}{% endif %}" rel="noopener" style="font-weight:600">{{ pick.title }}</a>
     <span style="font-size:0.85rem;color:#555"> — {{ pick.reason }}</span>
-  </div>
-  {% endfor %}
-  {% endif %}
+    </div>
+    {% endfor %}
+    {% endif %}
+
 </div>
 
 {% else %}

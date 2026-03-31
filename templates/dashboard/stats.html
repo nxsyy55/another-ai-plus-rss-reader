@@ -16,6 +16,7 @@
         <th>Fetched</th>
         <th>After Dedup</th>
         <th>Extracted</th>
+        <th>Ext. Failed</th>
         <th>Status</th>
         <th>Duration</th>
       </tr>
@@ -28,6 +29,7 @@
         <td>{{ run.articles_fetched or 0 }}</td>
         <td>{{ run.articles_after_dedup or 0 }}</td>
         <td>{{ run.articles_after_filter or 0 }}</td>
+        <td>{{ run.articles_extraction_failed or 0 }}</td>
         <td>
           {% if run.status == 'success' %}
             <span class="badge badge-green">success</span>

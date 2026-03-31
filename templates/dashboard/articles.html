@@ -14,7 +14,7 @@
 
   {% for art in articles %}
   <div class="article-item" id="art-{{ art.id }}">
-    <div class="article-title"><a href="{{ art.url }}" target="_blank">{{ art.title or art.url }}</a></div>
+    <div class="article-title"><a href="/articles/{{ art.id }}">{{ art.title or art.url }}</a></div>
     <div class="article-meta">
       {{ art.pub_date[:10] if art.pub_date else '?' }}
       {% if art.word_count %} · {{ art.word_count }} words{% endif %}

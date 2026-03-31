@@ -48,8 +48,9 @@ def _provider_status() -> dict:
 async def index(request: Request):
     import json
     from datetime import datetime
-    from aiNewReader.db import get_db, get_last_run, get_all_feeds, get_latest_report
+    from aiNewReader.db import get_db, init_db, get_last_run, get_all_feeds, get_latest_report
 
+    init_db()
     with get_db() as conn:
         last_run_row = get_last_run(conn)
         last_run = dict(last_run_row) if last_run_row else None
@@ -60,6 +61,18 @@ async def index(request: Request):
     if report_row:
         try:
             report = json.loads(report_row["content"])
+            # Map URLs to IDs for themes and picks
+            with get_db() as conn:
+                if report.get("key_themes"):
+                    for theme in report["key_themes"]:
+                        for art in theme.get("articles", []):
+                            row = conn.execute("SELECT id FROM articles WHERE url = ?", (art["url"],)).fetchone()
+                            if row: art["id"] = row["id"]
+                
+                if report.get("notable_picks"):
+                    for pick in report["notable_picks"]:
+                        row = conn.execute("SELECT id FROM articles WHERE url = ?", (pick["url"],)).fetchone()
+                        if row: pick["id"] = row["id"]
         except Exception:
             pass
 

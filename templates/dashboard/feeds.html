@@ -14,11 +14,17 @@
       </form>
     </div>
     <div style="flex:1;min-width:260px">
-      <h2>Import OPML</h2>
-      <form action="/feeds/import-opml" method="post" enctype="multipart/form-data" class="form-row" style="margin-top:0.5rem">
-        <input type="file" name="file" accept=".opml,.xml" required>
-        <button type="submit" class="btn btn-primary">Import</button>
-      </form>
+      <h2>Import / Export OPML</h2>
+      <div style="display:flex; gap:0.5rem; margin-top:0.5rem; align-items:center; flex-wrap:wrap;">
+        <form action="/feeds/import-opml" method="post" enctype="multipart/form-data" class="form-row" style="margin:0">
+          <input type="file" name="file" accept=".opml,.xml" required>
+          <button type="submit" class="btn btn-primary">Import</button>
+        </form>
+        <form action="/feeds/export-opml" method="get" class="form-row" style="margin:0">
+          <input type="text" name="filename" placeholder="feeds.opml" value="feeds.opml" style="max-width: 120px;" required>
+          <button type="submit" class="btn" style="background:#28a745; color:white; white-space:nowrap;">Export</button>
+        </form>
+      </div>
       {% if request.query_params.get('imported') %}
       <p style="color:#28a745;font-size:0.85rem;margin-top:0.4rem">
         ✓ Imported {{ request.query_params.get('imported') }} feed(s)

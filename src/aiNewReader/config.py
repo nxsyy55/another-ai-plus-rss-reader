@@ -63,7 +63,7 @@ class AppConfig(BaseModel):
     max_articles_per_run: int = 300
     max_articles_per_source: int = 10
     health_check_interval_hours: int = 24
-    firecrawl_enabled: bool = True
+    # firecrawl_enabled: bool = True
     report_prompt: str = _DEFAULT_REPORT_PROMPT
     provider: ProviderConfig = Field(default_factory=ProviderConfig)
     delivery: DeliveryConfig = Field(default_factory=DeliveryConfig)

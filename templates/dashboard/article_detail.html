@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}{{ article.title }}{% endblock %}
+{% block content %}
+<div class="card">
+  <div style="margin-bottom: 1.5rem;">
+    <a href="/articles/" class="btn" style="background:#f0f0f0;color:#333;">← Back to Articles</a>
+  </div>
+  
+  <h1 style="margin-bottom:0.5rem">{{ article.title }}</h1>
+  <div class="article-meta" style="margin-bottom:1.5rem;color:#666;font-size:0.9rem;">
+    {{ article.pub_date }} {% if article.word_count %} · {{ article.word_count }} words{% endif %}
+  </div>
+
+  {% if article.markdown_content %}
+  <div id="markdown-content" style="line-height:1.7; color:#333; display: none;">{{ article.markdown_content }}</div>
+  <div id="rendered-content" style="line-height:1.7; color:#333;"></div>
+  {% else %}
+  <div style="padding:2rem; background:#f9f9f9; border-radius:4px; color:#666; text-align:center;">
+    <p>No cleaned content available for this article.</p>
+  </div>
+  {% endif %}
+
+  <div style="margin-top:2.5rem; padding-top:1.5rem; border-top:1px solid #eee;">
+    <p style="font-size:0.85rem; color:#666;">
+      <strong>Source:</strong> <a href="{{ article.url }}" target="_blank" style="color:#1a73e8;">{{ article.url }}</a>
+    </p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+  // Simple markdown rendering
+  const contentEl = document.getElementById('markdown-content');
+  const targetEl = document.getElementById('rendered-content');
+  if (contentEl && targetEl) {
+    const rawContent = contentEl.textContent;
+    targetEl.innerHTML = marked.parse(rawContent);
+  }
+</script>
+
+<style>
+  #rendered-content h1, #rendered-content h2, #rendered-content h3 { margin-top: 1.5rem; margin-bottom: 0.8rem; }
+  #rendered-content p { margin-bottom: 1rem; }
+  #rendered-content ul, #rendered-content ol { margin-bottom: 1rem; padding-left: 1.5rem; }
+  #rendered-content pre { background: #f8f9fa; padding: 1rem; border-radius: 4px; overflow-x: auto; margin-bottom: 1rem; }
+  #rendered-content code { background: #f8f9fa; padding: 0.2rem 0.4rem; border-radius: 3px; font-family: monospace; }
+  #rendered-content img { max-width: 100%; height: auto; border-radius: 4px; }
+  #rendered-content blockquote { border-left: 4px solid #eee; padding-left: 1rem; color: #666; margin: 1rem 0; }
+</style>
+{% endblock %}

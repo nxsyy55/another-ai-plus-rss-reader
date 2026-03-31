@@ -196,3 +196,28 @@ def import_opml(path: "Path | str") -> list[dict[str, Any]]:
             upsert_feed(conn, feed["url"], feed["name"], True)
     save_feeds_to_yaml()
     return feeds
+
+
+def generate_opml(feeds: list[dict[str, Any]]) -> str:
+    """Generate OPML XML content from a list of feeds."""
+    import xml.etree.ElementTree as ET
+    from xml.dom import minidom
+
+    opml = ET.Element("opml", version="2.0")
+    head = ET.SubElement(opml, "head")
+    ET.SubElement(head, "title").text = "aiNewReader Feeds Export"
+    body = ET.SubElement(opml, "body")
+
+    for feed in feeds:
+        ET.SubElement(
+            body,
+            "outline",
+            text=feed.get("name", feed["url"]),
+            title=feed.get("name", feed["url"]),
+            type="rss",
+            xmlUrl=feed["url"]
+        )
+
+    rough_string = ET.tostring(opml, 'utf-8')
+    reparsed = minidom.parseString(rough_string)
+    return reparsed.toprettyxml(indent="  ")
