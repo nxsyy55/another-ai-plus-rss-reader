@@ -16,7 +16,7 @@ _STRIP_PARAMS = frozenset([
     "ref", "referrer", "source", "fbclid", "gclid", "mc_cid", "mc_eid",
 ])
 _FUZZY_THRESHOLD = 80
-_SEMANTIC_THRESHOLD = 0.92
+_SEMANTIC_THRESHOLD = 0.88
 
 
 def normalize_url(url: str) -> str:
@@ -63,7 +63,8 @@ async def deduplicate(
     for art in originals:
         norm_title = _normalize_title(art.get("title", ""))
         for existing in seen_titles:
-            score = fuzz.token_sort_ratio(norm_title, existing)
+            # Use ratio for character-based languages like Chinese/Japanese
+            score = fuzz.ratio(norm_title, existing)
             if score >= _FUZZY_THRESHOLD:
                 art["dedup_status"] = "duplicate_fuzzy"
                 break

@@ -25,7 +25,7 @@ def send_digest(digest_path: Path, subject: str | None = None) -> bool:
     body = digest_path.read_text(encoding="utf-8")
     if subject is None:
         from datetime import datetime
-        subject = f"AI News Digest — {datetime.utcnow().strftime('%Y-%m-%d')}"
+        subject = f"AI News Digest — {datetime.now().strftime('%Y-%m-%d')}"
 
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject

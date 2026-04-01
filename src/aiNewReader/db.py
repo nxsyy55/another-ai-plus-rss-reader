@@ -128,6 +128,17 @@ def _create_schema(conn: sqlite3.Connection) -> None:
             generated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
 
+        CREATE TABLE IF NOT EXISTS user_reports (
+            id           INTEGER PRIMARY KEY,
+            type         TEXT NOT NULL, -- 'article' or 'feed'
+            url          TEXT NOT NULL,
+            title        TEXT,
+            feed_url     TEXT,
+            reason       TEXT,
+            content      TEXT,
+            reported_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+
         CREATE INDEX IF NOT EXISTS idx_articles_url ON articles(url);
         CREATE INDEX IF NOT EXISTS idx_articles_pub_date ON articles(pub_date);
         CREATE INDEX IF NOT EXISTS idx_articles_run_id ON articles(run_id);
@@ -135,6 +146,7 @@ def _create_schema(conn: sqlite3.Connection) -> None:
         CREATE INDEX IF NOT EXISTS idx_article_tags_article_id ON article_tags(article_id);
         CREATE INDEX IF NOT EXISTS idx_feedback_article_id ON feedback(article_id);
         CREATE INDEX IF NOT EXISTS idx_reports_run_id ON reports(run_id);
+        CREATE INDEX IF NOT EXISTS idx_user_reports_type ON user_reports(type);
     """)
 
 
@@ -178,6 +190,21 @@ def _migrate(conn: sqlite3.Connection) -> None:
             conn.execute("ALTER TABLE articles ADD COLUMN full_content_extracted BOOLEAN DEFAULT 0")
         except sqlite3.OperationalError: pass
         _set_schema_version(conn, 4)
+    if current < 5:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS user_reports (
+                id           INTEGER PRIMARY KEY,
+                type         TEXT NOT NULL,
+                url          TEXT NOT NULL,
+                title        TEXT,
+                feed_url     TEXT,
+                reason       TEXT,
+                content      TEXT,
+                reported_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_user_reports_type ON user_reports(type)")
+        _set_schema_version(conn, 5)
 
 
 # ── Feed helpers ──────────────────────────────────────────────────────────────
@@ -230,10 +257,22 @@ def delete_feeds_batch(conn: sqlite3.Connection, urls: list[str]) -> None:
     conn.execute(f"DELETE FROM feeds WHERE id IN ({id_placeholders})", feed_ids)
 
 
+def report_feed(conn: sqlite3.Connection, url: str, reason: str = "") -> None:
+    row = conn.execute("SELECT * FROM feeds WHERE url=?", (url,)).fetchone()
+    if not row:
+        return
+    
+    conn.execute(
+        "INSERT INTO user_reports(type, url, title, reason, reported_at) VALUES (?,?,?,?,?)",
+        ("feed", url, row["name"], reason, datetime.now().isoformat()),
+    )
+    delete_feed_by_url(conn, url)
+
+
 def mark_feed_health(conn: sqlite3.Connection, feed_id: int, healthy: bool) -> None:
     conn.execute(
         "UPDATE feeds SET healthy=?, last_checked=? WHERE id=?",
-        (healthy, datetime.utcnow().isoformat(), feed_id),
+        (healthy, datetime.now().isoformat(), feed_id),
     )
 
 
@@ -242,7 +281,7 @@ def update_feed_cache(
 ) -> None:
     conn.execute(
         "UPDATE feeds SET etag=?, last_modified=?, last_fetched=? WHERE id=?",
-        (etag, last_modified, datetime.utcnow().isoformat(), feed_id),
+        (etag, last_modified, datetime.now().isoformat(), feed_id),
     )
 
 
@@ -251,7 +290,7 @@ def update_feed_cache(
 def create_run(conn: sqlite3.Connection, hours_window: int, provider: str) -> int:
     cur = conn.execute(
         "INSERT INTO runs(started_at, hours_window, provider) VALUES (?,?,?)",
-        (datetime.utcnow().isoformat(), hours_window, provider),
+        (datetime.now().isoformat(), hours_window, provider),
     )
     return cur.lastrowid
 
@@ -269,7 +308,7 @@ def complete_run(conn: sqlite3.Connection, run_id: int, stats: dict[str, Any], s
             error_message=?
         WHERE id=?""",
         (
-            datetime.utcnow().isoformat(),
+            datetime.now().isoformat(),
             stats.get("fetched", 0),
             stats.get("after_dedup", 0),
             stats.get("extracted") or stats.get("after_filter", 0),
@@ -321,12 +360,14 @@ def get_articles_for_run(conn: sqlite3.Connection, run_id: int) -> list[sqlite3.
 
 
 def get_recent_articles(conn: sqlite3.Connection, hours: int) -> list[sqlite3.Row]:
+    from datetime import timedelta
+    since = (datetime.now() - timedelta(hours=hours)).isoformat()
     return conn.execute(
         """SELECT * FROM articles
-           WHERE pub_date >= datetime('now', ? || ' hours')
+           WHERE pub_date >= ?
            AND dedup_status='original'
            ORDER BY pub_date DESC""",
-        (f"-{hours}",),
+        (since,),
     ).fetchall()
 
 
@@ -363,10 +404,40 @@ def update_article_audit(
         (summary, classification_correct, excluded, article_id),
     )
 
+def report_article(conn: sqlite3.Connection, article_id: int, reason: str = "") -> None:
+    row = conn.execute("""
+        SELECT a.*, f.url as feed_url 
+        FROM articles a 
+        LEFT JOIN feeds f ON a.feed_id = f.id 
+        WHERE a.id=?
+    """, (article_id,)).fetchone()
+    if not row:
+        return
+    
+    conn.execute(
+        "INSERT INTO user_reports(type, url, title, feed_url, reason, content, reported_at) VALUES (?,?,?,?,?,?,?)",
+        (
+            "article", 
+            row["url"], 
+            row["title"], 
+            row["feed_url"], 
+            reason, 
+            row["markdown_content"][:2000] if row["markdown_content"] else None,
+            datetime.now().isoformat()
+        ),
+    )
+    conn.execute("DELETE FROM articles WHERE id=?", (article_id,))
+
+def get_user_reports(conn: sqlite3.Connection, limit: int = 50) -> list[sqlite3.Row]:
+    return conn.execute(
+        "SELECT * FROM user_reports ORDER BY reported_at DESC LIMIT ?",
+        (limit,)
+    ).fetchall()
+
 def save_report(conn: sqlite3.Connection, run_id: int, content: str) -> int:
     cur = conn.execute(
         "INSERT INTO reports(run_id, content, generated_at) VALUES (?,?,?)",
-        (run_id, content, datetime.utcnow().isoformat()),
+        (run_id, content, datetime.now().isoformat()),
     )
     return cur.lastrowid
 

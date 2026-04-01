@@ -1,5 +1,33 @@
 # Develop
+
 ---
+
+## Architecture Overview
+
+aiNewReader is built as a modular pipeline with a SQLite backend:
+
+1. **Fetcher**: Polling RSS feeds and normalizing entries.
+2. **Extractor**: Multi-stage content extraction using Defuddle (Node.js) and Trafilatura.
+3. **Deduplicator**: 3-layer deduplication (URL normalization, fuzzy title matching, and BGE-M3 semantic similarity).
+4. **Classifier/Tagger**: Batch processing articles through LLM providers for thematic tagging.
+5. **Reporter**: Final LLM call to synthesize the daily digest from curated articles.
+6. **Dashboard**: Flask-based web interface for reading, searching, and managing the pipeline.
+
+---
+
+## Development Workflow
+
+1. **Run in Dev Mode**: 
+   Use `uv run ainewreader serve` for the dashboard and `uv run ainewreader` for the pipeline.
+2. **Database**: 
+   The SQLite database is located at `data/db.sqlite` (or configured path). You can use `sqlite3` or any GUI tool to inspect it.
+3. **Adding a Provider**: 
+   Implement the `BaseProvider` interface in `src/aiNewReader/providers/`.
+4. **UI Changes**: 
+   Templates are located in `templates/dashboard/`. We prefer vanilla CSS and minimal JS for performance and simplicity.
+
+---
+
 ## CLI reference
 
 ```bash

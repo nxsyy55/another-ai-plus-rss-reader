@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}User Reports{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>User Reports</h1>
+  <p style="font-size:0.85rem;color:#666;margin-bottom:1.5rem">
+    Articles or feeds reported as useless, garbage, or containing errors.
+  </p>
+
+  {% if reports %}
+  <table>
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Title / Name</th>
+        <th>URL</th>
+        <th>Reported At</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for report in reports %}
+    <tr>
+      <td>
+        <span class="badge {% if report.type == 'article' %}badge-gray{% else %}badge-red{% endif %}">
+          {{ report.type|capitalize }}
+        </span>
+      </td>
+      <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ report.title }}">
+        {{ report.title or '—' }}
+      </td>
+      <td style="font-size:0.8rem;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ report.url }}">
+        <a href="{{ report.url }}" target="_blank">{{ report.url }}</a>
+      </td>
+      <td style="font-size:0.8rem;white-space:nowrap">{{ report.reported_at[:16].replace('T', ' ') }}</td>
+      <td>
+        <button class="btn btn-sm" onclick="showDetails('{{ report.id }}')">Details</button>
+      </td>
+    </tr>
+    <tr id="details-{{ report.id }}" style="display:none; background:#f9f9f9;">
+      <td colspan="5" style="padding:1rem; border-bottom:1px solid #eee;">
+        <div style="font-size:0.85rem; line-height:1.5;">
+          {% if report.feed_url %}
+          <p><strong>Feed URL:</strong> {{ report.feed_url }}</p>
+          {% endif %}
+          {% if report.reason %}
+          <p><strong>Reason:</strong> {{ report.reason }}</p>
+          {% endif %}
+          {% if report.content %}
+          <p><strong>Content Preview:</strong></p>
+          <pre style="background:#fff; padding:0.5rem; border:1px solid #ddd; max-height:200px; overflow-y:auto; white-space:pre-wrap; font-family:monospace; font-size:0.75rem;">{{ report.content }}</pre>
+          {% endif %}
+        </div>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No reports found.</p>
+  {% endif %}
+</div>
+
+<script>
+  function showDetails(id) {
+    const el = document.getElementById('details-' + id);
+    if (el.style.display === 'none') {
+      el.style.display = 'table-row';
+    } else {
+      el.style.display = 'none';
+    }
+  }
+</script>
+{% endblock %}

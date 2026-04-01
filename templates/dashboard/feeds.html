@@ -83,6 +83,10 @@
           <input type="hidden" name="url" value="{{ feed.url }}">
           <button class="btn btn-sm btn-danger" type="submit">Remove</button>
         </form>
+        <form class="inline" action="/feeds/report" method="post" onsubmit="return confirm('Report and remove this feed?')">
+          <input type="hidden" name="url" value="{{ feed.url }}">
+          <button class="btn btn-sm" type="submit" style="background:#dc3545;color:#fff;border-color:#dc3545;">Report</button>
+        </form>
       </td>
     </tr>
     {% endfor %}

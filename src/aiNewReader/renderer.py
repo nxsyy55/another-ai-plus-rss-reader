@@ -34,13 +34,13 @@ def render_digest(
         # Fallback: inline template
         template = env.from_string(_FALLBACK_TEMPLATE)
 
-    now = datetime.utcnow()
+    now = datetime.now().astimezone()
     content = template.render(
         articles=articles,
         by_topic=dict(sorted(by_topic.items())),
         run_stats=run_stats,
         report_data=report_data,
-        generated_at=now.strftime("%Y-%m-%d %H:%M UTC"),
+        generated_at=now.strftime("%Y-%m-%d %H:%M %Z"),
         date=now.strftime("%Y-%m-%d"),
     )
 

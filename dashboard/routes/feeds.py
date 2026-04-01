@@ -5,9 +5,9 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
 from aiNewReader.db import get_db, get_all_feeds, upsert_feed, init_db
+from ..templates import templates
 
 router = APIRouter()
-templates = Jinja2Templates(directory="templates/dashboard")
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -35,6 +35,17 @@ async def remove_feed(url: str = Form(...)):
     from aiNewReader.db import delete_feed_by_url
     with get_db() as conn:
         delete_feed_by_url(conn, url)
+    save_feeds_to_yaml()
+    return RedirectResponse(url="/feeds/", status_code=303)
+
+
+@router.post("/report")
+async def report_feed_route(url: str = Form(...), reason: str = Form("")):
+    from fastapi.responses import RedirectResponse
+    from aiNewReader.fetcher import save_feeds_to_yaml
+    from aiNewReader.db import report_feed
+    with get_db() as conn:
+        report_feed(conn, url, reason)
     save_feeds_to_yaml()
     return RedirectResponse(url="/feeds/", status_code=303)
 

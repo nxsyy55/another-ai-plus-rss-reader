@@ -97,7 +97,7 @@ async def _run_pipeline(hours: int, provider: str | None, dry_run: bool) -> None
     click.echo(f"  Empty content (skipped for report): {len(empty_content)}")
     articles_with_content = [a for a in articles if a.get("markdown_content", "").strip()]
 
-    date_str = datetime.utcnow().strftime("%Y-%m-%d")
+    date_str = datetime.now().strftime("%Y-%m-%d")
     scraped_path = Path(f"output/scraped_{date_str}.md")
     scraped_path.parent.mkdir(parents=True, exist_ok=True)
     with open(scraped_path, "w", encoding="utf-8") as f:
@@ -121,7 +121,7 @@ async def _run_pipeline(hours: int, provider: str | None, dry_run: bool) -> None
     click.echo(f"  Report: {len(report_data.get('key_themes', []))} themes identified")
 
     click.echo("▶ Stage 5: Rendering digest")
-    date_str = datetime.utcnow().strftime("%Y-%m-%d")
+    date_str = datetime.now().strftime("%Y-%m-%d")
     output_path_str = cfg.delivery.markdown_output.replace("{date}", date_str)
     output_path = Path(output_path_str)
     render_digest(articles_with_content, stats, output_path, report_data=report_data)

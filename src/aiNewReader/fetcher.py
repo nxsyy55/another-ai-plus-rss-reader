@@ -20,25 +20,23 @@ def _normalize_date(dt: Any) -> datetime | None:
         return None
     if isinstance(dt, datetime):
         if dt.tzinfo is None:
-            return dt.replace(tzinfo=timezone.utc)
-        return dt.astimezone(timezone.utc)
+            return dt.replace(tzinfo=timezone.utc).astimezone().replace(tzinfo=None)
+        return dt.astimezone().replace(tzinfo=None)
     if isinstance(dt, str):
-        # Try standard RFC 2822 parsing first
         from email.utils import parsedate_to_datetime
         try:
             parsed = parsedate_to_datetime(dt)
             if parsed.tzinfo is None:
-                return parsed.replace(tzinfo=timezone.utc)
-            return parsed.astimezone(timezone.utc)
+                return parsed.replace(tzinfo=timezone.utc).astimezone().replace(tzinfo=None)
+            return parsed.astimezone().replace(tzinfo=None)
         except (TypeError, ValueError):
             pass
-        # Try dateutil parser for ISO 8601 and other formats
         try:
             from dateutil import parser
             parsed = parser.parse(dt)
             if parsed.tzinfo is None:
-                return parsed.replace(tzinfo=timezone.utc)
-            return parsed.astimezone(timezone.utc)
+                return parsed.replace(tzinfo=timezone.utc).astimezone().replace(tzinfo=None)
+            return parsed.astimezone().replace(tzinfo=None)
         except Exception:
             pass
     return None
@@ -108,7 +106,7 @@ async def _fetch_feed(
         articles.append({
             "url": link,
             "title": title,
-            "pub_date": pub.isoformat() if pub else datetime.utcnow().isoformat(),
+            "pub_date": pub.isoformat() if pub else datetime.now().isoformat(),
             "feed_id": feed_id,
             "raw_summary": summary[:2000],
             "content_hash": _content_hash(title, summary),
@@ -121,7 +119,7 @@ async def _fetch_feed(
 
 async def fetch_all_feeds(hours: int) -> list[dict[str, Any]]:
     cfg = get_config()
-    since = datetime.now(timezone.utc) - timedelta(hours=hours)
+    since = datetime.now() - timedelta(hours=hours)
 
     with get_db() as conn:
         feeds = [f for f in get_all_feeds(conn) if f["enabled"] and f["healthy"]]

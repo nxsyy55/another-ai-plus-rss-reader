@@ -8,9 +8,9 @@ import yaml
 
 from aiNewReader.config import get_config, load_config
 from aiNewReader.db import init_db
+from ..templates import templates
 
 router = APIRouter()
-templates = Jinja2Templates(directory="templates/dashboard")
 
 
 @router.get("/", response_class=HTMLResponse)

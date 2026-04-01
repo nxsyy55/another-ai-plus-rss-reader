@@ -6,9 +6,9 @@ from fastapi.templating import Jinja2Templates
 
 from aiNewReader.db import get_db, init_db
 from aiNewReader.config import get_config
+from ..templates import templates
 
 router = APIRouter()
-templates = Jinja2Templates(directory="templates/dashboard")
 
 PRICING = {
     "claude-haiku-4-5-20251001": (0.80, 4.00),
@@ -20,6 +20,18 @@ PRICING = {
 }
 
 BUCKET_ORDER = ["0-200", "200-500", "500-1000", "1000-2000", "2000+"]
+
+
+@router.get("/reports", response_class=HTMLResponse)
+async def reports_page(request: Request):
+    from aiNewReader.db import get_user_reports
+    init_db()
+    with get_db() as conn:
+        reports = get_user_reports(conn)
+    return templates.TemplateResponse("reports.html", {
+        "request": request,
+        "reports": [dict(r) for r in reports],
+    })
 
 
 @router.get("/", response_class=HTMLResponse)

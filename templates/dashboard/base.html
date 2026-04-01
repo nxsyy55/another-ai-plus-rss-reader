@@ -51,7 +51,8 @@
   <a href="/settings/" {% if request.url.path.startswith('/settings') %}class="active"{% endif %}>Settings</a>
   <a href="/feeds/" {% if request.url.path.startswith('/feeds') %}class="active"{% endif %}>Feeds</a>
   <a href="/articles/" {% if request.url.path.startswith('/articles') %}class="active"{% endif %}>Articles</a>
-  <a href="/stats/" {% if request.url.path.startswith('/stats') %}class="active"{% endif %}>Stats</a>
+  <a href="/stats/reports" {% if request.url.path.startswith('/stats/reports') %}class="active"{% endif %}>Reports</a>
+  <a href="/stats/" {% if request.url.path == '/stats/' %}class="active"{% endif %}>Stats</a>
 </nav>
 <div class="container">
 {% block content %}{% endblock %}

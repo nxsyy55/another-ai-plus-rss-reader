@@ -25,7 +25,13 @@ _MEDIA_WORD_THRESHOLD = 40  # articles below this word count + media URL = filte
 
 
 def _count_words(text: str) -> int:
-    return len(re.findall(r"\S+", text))
+    # Count CJK characters
+    cjk_count = len(re.findall(r'[\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af]', text))
+    # Count non-CJK words (splitting by whitespace)
+    # First remove CJK characters to avoid double counting if they are surrounded by spaces
+    non_cjk_text = re.sub(r'[\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af]', ' ', text)
+    word_count = len(re.findall(r"\S+", non_cjk_text))
+    return cjk_count + word_count
 
 
 def _is_media_only(url: str, word_count: int) -> bool:

@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from .routes import feeds, articles, settings, stats
+from .templates import templates
 
 app = FastAPI(title="aiNewReader Dashboard", docs_url=None, redoc_url=None)
 
@@ -20,9 +21,6 @@ app.include_router(feeds.router, prefix="/feeds", tags=["feeds"])
 app.include_router(articles.router, prefix="/articles", tags=["articles"])
 app.include_router(settings.router, prefix="/settings", tags=["settings"])
 app.include_router(stats.router, prefix="/stats", tags=["stats"])
-
-templates = Jinja2Templates(directory="templates/dashboard")
-
 
 def _provider_status() -> dict:
     """Check which providers have API keys configured."""
@@ -76,9 +74,12 @@ async def index(request: Request):
         except Exception:
             pass
 
-    report_date = datetime.utcnow().strftime("%Y-%m-%d")
+    report_date = datetime.now().strftime("%Y-%m-%d")
     if last_run and last_run.get("started_at"):
-        report_date = last_run["started_at"][:10]
+        # Convert stored UTC to local time for display
+        from dateutil import parser
+        started_at_utc = parser.parse(last_run["started_at"])
+        report_date = started_at_utc.astimezone().strftime("%Y-%m-%d")
 
     return templates.TemplateResponse("index.html", {
         "request": request,

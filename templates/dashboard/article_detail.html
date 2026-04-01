@@ -3,14 +3,18 @@
 {% block content %}
 <div class="card">
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-    <a href="/articles/" class="btn" style="background:#f0f0f0;color:#333;">← Back to Articles</a>
-    <button id="btn-send-to-hub" class="btn" style="background:#4caf50;color:white;">Send to Hub</button>
+    <a href="javascript:history.back()" class="btn" style="background:#f0f0f0;color:#333;">← Back to Articles</a>
+    <div style="display: flex; gap: 0.5rem;">
+      <button id="btn-send-to-hub" class="btn" style="background:#4caf50;color:white;">Send to Hub</button>
+      <form action="/articles/{{ article.id }}/report" method="post" onsubmit="return confirm('Report and delete this article?')" class="inline">
+        <button type="submit" class="btn btn-danger">Report</button>
+      </form>
+    </div>
   </div>
   
   <h1 style="margin-bottom:0.5rem">{{ article.title }}</h1>
   <div class="article-meta" style="margin-bottom:1.5rem;color:#666;font-size:0.9rem;">
-    {{ article.pub_date }} {% if article.word_count %} · {{ article.word_count }} words{% endif %}
-  </div>
+    {{ article.pub_date | to_local_datetime | strftime('%Y-%m-%d %H:%M %Z') }} {% if article.word_count %} · {{ article.word_count }} words{% endif %}  </div>
 
   {% if article.markdown_content %}
   <div id="markdown-content" style="line-height:1.7; color:#333; display: none;">{{ article.markdown_content }}</div>

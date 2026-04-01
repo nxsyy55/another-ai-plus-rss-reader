@@ -13,9 +13,9 @@ from fastapi.templating import Jinja2Templates
 
 from aiNewReader.db import get_db, init_db
 from aiNewReader.config import get_config
+from ..templates import templates
 
 router = APIRouter()
-templates = Jinja2Templates(directory="templates/dashboard")
 
 
 def slugify(text: str) -> str:
@@ -102,6 +102,14 @@ async def article_detail(request: Request, article_id: int):
         "request": request,
         "article": article,
     })
+
+
+@router.post("/{article_id}/report")
+async def report_article_route(article_id: int, reason: str = Form("")):
+    from aiNewReader.db import report_article
+    with get_db() as conn:
+        report_article(conn, article_id, reason)
+    return RedirectResponse(url="/articles/", status_code=303)
 
 
 @router.post("/{article_id}/send-to-hub")
