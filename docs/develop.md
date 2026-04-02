@@ -24,7 +24,9 @@ aiNewReader is built as a modular pipeline with a SQLite backend:
 3. **Adding a Provider**: 
    Implement the `BaseProvider` interface in `src/aiNewReader/providers/`.
 4. **UI Changes**: 
-   Templates are located in `templates/dashboard/`. We prefer vanilla CSS and minimal JS for performance and simplicity.
+   Templates are located in `templates/dashboard/`. We prefer vanilla CSS and minimal JS for performance and simplicity. The dashboard also includes a built-in SQL Console (`/query`) for direct database inspection.
+5. **Database Utilities**:
+   Use scripts in `scripts/` (e.g., `sync_feeds_cleanup.py`, `delete_source.py`) for advanced database curation. See `docs/database_schema.md` for schema details.
 
 ---
 
@@ -45,6 +47,10 @@ uv run ainewreader feeds remove "https://..."
 uv run ainewreader feeds disable "https://..."
 uv run ainewreader feeds enable "https://..."
 uv run ainewreader feeds clean-paywalls     # exclude paywalled articles
+
+# Utility Scripts
+python scripts/sync_feeds_cleanup.py        # Remove DB articles/feeds not in feeds.yaml
+python scripts/delete_source.py "FeedName"  # Completely wipe a specific source from DB
 ```
 
 ---

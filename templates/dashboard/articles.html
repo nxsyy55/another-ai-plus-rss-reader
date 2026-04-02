@@ -4,9 +4,30 @@
 <div class="card">
   <h1>Articles</h1>
   <form method="get" action="/articles/" class="form-row">
-    <input name="q" value="{{ q }}" placeholder="Semantic search..." style="flex:1;min-width:200px">
-    <button type="submit" class="btn btn-primary">Search</button>
-    {% if q %}
+    <input name="q" value="{{ q }}" placeholder="Search title/content..." style="flex:1;min-width:200px">
+    
+    <select name="feed_id">
+      <option value="">All Sources</option>
+      {% for f in feeds %}
+      <option value="{{ f.id }}" {% if feed_id == f.id %}selected{% endif %}>{{ f.name }}</option>
+      {% endfor %}
+    </select>
+
+    <select name="language">
+      <option value="">All Languages</option>
+      <option value="en" {% if language == "en" %}selected{% endif %}>English</option>
+      <option value="zh" {% if language == "zh" %}selected{% endif %}>Chinese</option>
+    </select>
+
+    <select name="word_bucket">
+      <option value="">All Lengths</option>
+      <option value="0-200" {% if word_bucket == "0-200" %}selected{% endif %}>0-200 words</option>
+      <option value="200-500" {% if word_bucket == "200-500" %}selected{% endif %}>200-500 words</option>
+      <option value="500+" {% if word_bucket == "500+" %}selected{% endif %}>500+ words</option>
+    </select>
+
+    <button type="submit" class="btn btn-primary">Filter</button>
+    {% if q or feed_id or word_bucket or language %}
     <a href="/articles/" class="btn">Clear</a>
     {% endif %}
   </form>
@@ -34,20 +55,23 @@
   <p>No articles found.</p>
   {% endfor %}
 
+  {% set base_url = "?q=" ~ (q or '') ~ "&feed_id=" ~ (feed_id or '') ~ "&word_bucket=" ~ (word_bucket or '') ~ "&language=" ~ (language or '') %}
   <div style="margin-top:1rem;display:flex;gap:0.5rem;align-items:center;">
-    {% if has_prev %}<a href="?q={{ q }}&page={{ page - 1 }}" class="btn">← Prev</a>{% endif %}
+    {% if has_prev %}<a href="{{ base_url }}&page={{ page - 1 }}" class="btn">← Prev</a>{% endif %}
     
     <div style="display:flex; gap:0.25rem;">
-      {% for p in range(start_page, end_page + 1) %}
-        {% if p == page %}
+      {% for p in pagination %}
+        {% if p == '...' %}
+          <span class="btn" style="background:transparent;color:#666;cursor:default;padding:0.4rem 0.2rem;">...</span>
+        {% elif p == page %}
           <span class="btn" style="background:#1a1a2e;color:#fff;cursor:default;">{{ p }}</span>
         {% else %}
-          <a href="?q={{ q }}&page={{ p }}" class="btn" style="background:#f0f0f0;color:#333;">{{ p }}</a>
+          <a href="{{ base_url }}&page={{ p }}" class="btn" style="background:#f0f0f0;color:#333;">{{ p }}</a>
         {% endif %}
       {% endfor %}
     </div>
 
-    {% if has_next %}<a href="?q={{ q }}&page={{ page + 1 }}" class="btn">Next →</a>{% endif %}
+    {% if has_next %}<a href="{{ base_url }}&page={{ page + 1 }}" class="btn">Next →</a>{% endif %}
   </div>
 </div>
 

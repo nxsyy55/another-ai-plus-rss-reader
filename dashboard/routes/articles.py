@@ -32,6 +32,9 @@ def slugify(text: str) -> str:
 async def articles_page(
     request: Request,
     q: str = Query(default=""),
+    feed_id: str = Query(default=None),
+    word_bucket: str = Query(default=None),
+    language: str = Query(default=None),
     page: int = Query(default=1),
 ):
     init_db()
@@ -39,11 +42,32 @@ async def articles_page(
     offset = (page - 1) * limit
 
     with get_db() as conn:
+        # Get feeds for the dropdown
+        feeds = conn.execute("SELECT id, name FROM feeds ORDER BY name").fetchall()
+        
         where = "WHERE dedup_status='original'"
         params: list = []
         if q:
             where += " AND (title LIKE ? OR markdown_content LIKE ?)"
             params.extend([f"%{q}%", f"%{q}%"])
+        
+        parsed_feed_id = None
+        if feed_id and feed_id.isdigit():
+            parsed_feed_id = int(feed_id)
+            where += " AND feed_id = ?"
+            params.append(parsed_feed_id)
+            
+        if language:
+            where += " AND language = ?"
+            params.append(language)
+            
+        if word_bucket:
+            if word_bucket == "0-200":
+                where += " AND word_count < 200"
+            elif word_bucket == "200-500":
+                where += " AND word_count >= 200 AND word_count < 500"
+            elif word_bucket == "500+":
+                where += " AND word_count >= 500"
 
         rows = conn.execute(
             f"SELECT * FROM articles {where} ORDER BY pub_date DESC LIMIT ? OFFSET ?",
@@ -72,18 +96,30 @@ async def articles_page(
                         art["snippet"] = content[:300] + ("..." if len(content) > 300 else "")
 
     total_pages = max(1, (total + limit - 1) // limit)
-    start_page = max(1, page - 4)
-    end_page = min(total_pages, page + 4)
+    
+    pagination = []
+    if total_pages <= 7:
+        pagination = list(range(1, total_pages + 1))
+    else:
+        if page <= 4:
+            pagination = [1, 2, 3, 4, 5, "...", total_pages]
+        elif page >= total_pages - 3:
+            pagination = [1, "...", total_pages - 4, total_pages - 3, total_pages - 2, total_pages - 1, total_pages]
+        else:
+            pagination = [1, "...", page - 1, page, page + 1, "...", total_pages]
 
     return templates.TemplateResponse("articles.html", {
         "request": request,
         "articles": articles,
+        "feeds": [dict(f) for f in feeds],
+        "feed_id": parsed_feed_id,
+        "word_bucket": word_bucket,
+        "language": language,
         "q": q,
         "page": page,
         "total": total,
         "total_pages": total_pages,
-        "start_page": start_page,
-        "end_page": end_page,
+        "pagination": pagination,
         "has_next": offset + limit < total,
         "has_prev": page > 1,
     })

@@ -61,10 +61,13 @@ async def _run_pipeline(hours: int, provider: str | None, dry_run: bool) -> None
     stats["after_dedup"] = len(originals)
 
     # Persist articles to DB
+    stats["new"] = 0
     with get_db() as conn:
         for art in articles:
-            art_id = insert_article(conn, {**art, "run_id": run_id})
+            art_id, is_new = insert_article(conn, {**art, "run_id": run_id})
             art["id"] = art_id
+            if is_new:
+                stats["new"] += 1
             if art.get("dedup_status") != "original":
                 update_article_dedup(conn, art_id, art["dedup_status"])
             if art.get("embedding"):
@@ -138,7 +141,7 @@ async def _run_pipeline(hours: int, provider: str | None, dry_run: bool) -> None
     with get_db() as conn:
         complete_run(conn, run_id, stats)
 
-    click.echo(f"\n✓ Done. {len(articles)} articles in digest.")
+    click.echo(f"\n✓ Done. {len(articles)} articles in digest, {stats['new']} new unique articles added to DB.")
 
 
 # ── CLI commands ──────────────────────────────────────────────────────────────

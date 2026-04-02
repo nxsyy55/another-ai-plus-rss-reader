@@ -294,7 +294,6 @@ def create_run(conn: sqlite3.Connection, hours_window: int, provider: str) -> in
     )
     return cur.lastrowid
 
-
 def complete_run(conn: sqlite3.Connection, run_id: int, stats: dict[str, Any], status: str = "success", error: str | None = None) -> None:
     conn.execute(
         """UPDATE runs SET
@@ -304,6 +303,7 @@ def complete_run(conn: sqlite3.Connection, run_id: int, stats: dict[str, Any], s
             articles_after_filter=?,
             articles_audited=?,
             articles_extraction_failed=?,
+            articles_new=?,
             status=?,
             error_message=?
         WHERE id=?""",
@@ -314,11 +314,13 @@ def complete_run(conn: sqlite3.Connection, run_id: int, stats: dict[str, Any], s
             stats.get("extracted") or stats.get("after_filter", 0),
             stats.get("audited", 0),
             stats.get("extraction_failed", 0),
+            stats.get("new", 0),
             status,
             error,
             run_id,
         ),
     )
+
 
 
 def get_last_run(conn: sqlite3.Connection) -> sqlite3.Row | None:
@@ -329,7 +331,7 @@ def get_last_run(conn: sqlite3.Connection) -> sqlite3.Row | None:
 
 # ── Article helpers ───────────────────────────────────────────────────────────
 
-def insert_article(conn: sqlite3.Connection, data: dict[str, Any]) -> int:
+def insert_article(conn: sqlite3.Connection, data: dict[str, Any]) -> tuple[int, bool]:
     keys = [
         "url", "title", "pub_date", "feed_id", "language",
         "raw_summary", "markdown_content", "word_count",
@@ -344,8 +346,8 @@ def insert_article(conn: sqlite3.Connection, data: dict[str, Any]) -> int:
     )
     if cur.lastrowid == 0:
         row = conn.execute("SELECT id FROM articles WHERE url=?", (data["url"],)).fetchone()
-        return row["id"] if row else 0
-    return cur.lastrowid
+        return (row["id"] if row else 0, False)
+    return (cur.lastrowid, True)
 
 
 def get_article_by_url(conn: sqlite3.Connection, url: str) -> sqlite3.Row | None:

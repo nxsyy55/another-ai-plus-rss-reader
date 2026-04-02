@@ -87,18 +87,24 @@ async def _extract_with_defuddle(html: str) -> str | None:
             pass
 
 
+def _detect_language(text: str) -> str:
+    """Simple heuristic for language detection (English vs Chinese)."""
+    if not text:
+        return "en"
+    # Count CJK characters
+    cjk_count = len(re.findall(r'[\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af]', text))
+    # If more than 5% of characters are CJK, call it Chinese
+    if cjk_count / len(text) > 0.05:
+        return "zh"
+    return "en"
+
+
 async def extract_article(client: httpx.AsyncClient, article: dict[str, Any], firecrawl_enabled: bool = False) -> dict[str, Any]:
     url = article["url"]
     markdown: str | None = None
     full_content_extracted = False
 
     async with SEMAPHORE:
-        # Stage A: try Firecrawl (handles paywalls, JS rendering)
-        # if firecrawl_enabled:
-        #     markdown = await asyncio.to_thread(_firecrawl_scrape, url)
-        #     if markdown:
-        #         full_content_extracted = True
-
         # Stage B: try Trafilatura (Now primary engine)
         if not markdown:
             try:
@@ -124,6 +130,7 @@ async def extract_article(client: httpx.AsyncClient, article: dict[str, Any], fi
     word_count = _count_words(markdown or "")
     article["markdown_content"] = markdown or ""
     article["word_count"] = word_count
+    article["language"] = _detect_language(markdown or "")
     article["media_only"] = _is_media_only(url, word_count)
     article["full_content_extracted"] = full_content_extracted
     return article
@@ -141,8 +148,10 @@ async def extract_all(articles: list[dict[str, Any]], firecrawl_enabled: bool = 
     output: list[dict[str, Any]] = []
     for art, result in zip(articles, results):
         if isinstance(result, Exception):
-            art["markdown_content"] = art.get("raw_summary", "")
-            art["word_count"] = _count_words(art.get("raw_summary", ""))
+            content = art.get("raw_summary", "")
+            art["markdown_content"] = content
+            art["word_count"] = _count_words(content)
+            art["language"] = _detect_language(content)
             art["media_only"] = False
             output.append(art)
         else:

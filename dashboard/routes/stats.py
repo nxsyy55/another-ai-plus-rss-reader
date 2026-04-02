@@ -19,7 +19,7 @@ PRICING = {
     "gemini-3-flash": (0.075, 0.30),
 }
 
-BUCKET_ORDER = ["0-200", "200-500", "500-1000", "1000-2000", "2000+"]
+BUCKET_ORDER = ["0-200", "200-500", "500+"]
 
 
 @router.get("/reports", response_class=HTMLResponse)
@@ -38,17 +38,29 @@ async def reports_page(request: Request):
 async def stats_page(request: Request):
     init_db()
     with get_db() as conn:
-        # Last 40 runs
+        # Last 10 runs
         run_rows = conn.execute("""
             SELECT id, started_at, completed_at, provider, articles_fetched,
-                   articles_after_dedup, articles_after_filter, articles_extraction_failed, status,
+                   articles_after_dedup, articles_after_filter, articles_extraction_failed,
+                   articles_new, status,
                    CAST(ROUND((JULIANDAY(COALESCE(completed_at, started_at)) - JULIANDAY(started_at)) * 86400) AS INTEGER) as duration_seconds
-            FROM runs ORDER BY started_at DESC LIMIT 40
+            FROM runs ORDER BY started_at DESC LIMIT 10
         """).fetchall()
 
         runs = [dict(r) for r in run_rows]
         last_run = runs[0] if runs else None
         last_run_id = last_run["id"] if last_run else None
+
+        # Top 10 sources by article count
+        source_rows = conn.execute("""
+            SELECT f.name, f.url, COUNT(a.id) as article_count
+            FROM feeds f
+            JOIN articles a ON f.id = a.feed_id
+            GROUP BY f.id
+            ORDER BY article_count DESC
+            LIMIT 10
+        """).fetchall()
+        top_sources = [dict(r) for r in source_rows]
 
         # Extraction stats for last run
         extraction_stats = {"total": 0, "failed": 0, "success_rate_pct": 0.0}
@@ -80,9 +92,7 @@ async def stats_page(request: Request):
                   CASE
                     WHEN word_count < 200 THEN '0-200'
                     WHEN word_count < 500 THEN '200-500'
-                    WHEN word_count < 1000 THEN '500-1000'
-                    WHEN word_count < 2000 THEN '1000-2000'
-                    ELSE '2000+'
+                    ELSE '500+'
                   END as bucket,
                   COUNT(*) as cnt
                 FROM articles
@@ -154,6 +164,7 @@ async def stats_page(request: Request):
     return templates.TemplateResponse("stats.html", {
         "request": request,
         "runs": runs,
+        "top_sources": top_sources,
         "last_run": last_run,
         "extraction_stats": extraction_stats,
         "word_buckets": word_buckets,
