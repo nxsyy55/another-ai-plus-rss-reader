@@ -145,6 +145,34 @@ async def fetch_all_feeds(hours: int) -> list[dict[str, Any]]:
             unique.append(a)
 
     max_articles = cfg.max_articles_per_run
+    if len(unique) > max_articles:
+        # If we exceeded the global limit, apply fairness logic:
+        # Reduce the contribution of the noisiest sources (top 5 by article count)
+        from collections import defaultdict
+        by_feed = defaultdict(list)
+        for a in unique:
+            by_feed[a["feed_id"]].append(a)
+            
+        # Identify top 5 feeds by count
+        top_feeds = sorted(by_feed.keys(), key=lambda fid: len(by_feed[fid]), reverse=True)[:5]
+        
+        for fid in top_feeds:
+            arts = by_feed[fid]
+            if len(arts) > 1:
+                by_feed[fid] = arts[:len(arts) // 2]
+        
+        # Re-flatten the list, keeping original order where possible (by feed order)
+        unique = []
+        # We use a set for deterministic but preserved feed order from the original list
+        seen_feeds = []
+        for a in articles:
+            if a["feed_id"] not in seen_feeds:
+                seen_feeds.append(a["feed_id"])
+        
+        for fid in seen_feeds:
+            if fid in by_feed:
+                unique.extend(by_feed[fid])
+
     return unique[:max_articles]
 
 

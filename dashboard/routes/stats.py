@@ -38,45 +38,26 @@ async def reports_page(request: Request):
 async def stats_page(request: Request):
     init_db()
     with get_db() as conn:
-        # Last 20 runs
+        # Last 40 runs
         run_rows = conn.execute("""
             SELECT id, started_at, completed_at, provider, articles_fetched,
                    articles_after_dedup, articles_after_filter, articles_extraction_failed, status,
                    CAST(ROUND((JULIANDAY(COALESCE(completed_at, started_at)) - JULIANDAY(started_at)) * 86400) AS INTEGER) as duration_seconds
-            FROM runs ORDER BY started_at DESC LIMIT 20
+            FROM runs ORDER BY started_at DESC LIMIT 40
         """).fetchall()
 
         runs = [dict(r) for r in run_rows]
         last_run = runs[0] if runs else None
         last_run_id = last_run["id"] if last_run else None
 
-        # Articles per source (all-time originals)
-        source_rows = conn.execute("""
-            SELECT f.name, f.url, COUNT(a.id) as cnt
-            FROM articles a JOIN feeds f ON a.feed_id = f.id
-            WHERE a.dedup_status='original'
-            GROUP BY f.id ORDER BY cnt DESC
-        """).fetchall()
-
-        total_articles = sum(r["cnt"] for r in source_rows) or 1
-        articles_per_source = [
-            {
-                "name": r["name"] or r["url"],
-                "url": r["url"],
-                "cnt": r["cnt"],
-                "pct": round(r["cnt"] / total_articles * 100, 1),
-            }
-            for r in source_rows
-        ]
-
-        # Stats that depend on last_run
+        # Extraction stats for last run
         extraction_stats = {"total": 0, "failed": 0, "success_rate_pct": 0.0}
         word_buckets: list[dict] = []
         hist_stats = {"avg_fetched": None, "avg_dedup": None, "avg_extracted": None}
         token_estimate = {"input_tokens": 0, "output_tokens": 0, "cost_usd": 0.0, "model": "", "provider": ""}
 
         if last_run_id is not None:
-            # Extraction stats for last run
+            # ... (extraction_stats and word_buckets logic remains same) ...
             ext_row = conn.execute("""
                 SELECT COUNT(*) as total,
                        SUM(CASE WHEN full_content_extracted=0 THEN 1 ELSE 0 END) as failed
@@ -121,13 +102,13 @@ async def stats_page(request: Request):
                 for b in BUCKET_ORDER
             ]
 
-            # Historical averages (last 30 successful runs excluding most recent)
+            # Historical averages (last 60 successful runs excluding most recent)
             hist_row = conn.execute("""
                 SELECT AVG(articles_fetched) as avg_fetched,
                        AVG(articles_after_dedup) as avg_dedup,
                        AVG(articles_after_filter) as avg_extracted
                 FROM (SELECT * FROM runs WHERE status='success' AND id != ?
-                      ORDER BY started_at DESC LIMIT 30)
+                      ORDER BY started_at DESC LIMIT 60)
             """, (last_run_id,)).fetchone()
 
             if hist_row:
@@ -174,7 +155,6 @@ async def stats_page(request: Request):
         "request": request,
         "runs": runs,
         "last_run": last_run,
-        "articles_per_source": articles_per_source,
         "extraction_stats": extraction_stats,
         "word_buckets": word_buckets,
         "hist_stats": hist_stats,

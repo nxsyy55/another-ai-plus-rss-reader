@@ -71,9 +71,20 @@ def generate_report(
 
     provider = get_provider(provider_name)
     
-    # Dynamic Truncation: Aim for 80% of context window to be safe (leaving room for prompt and output)
+    # Filter: Only send articles <= 500 words to LLM for report generation
+    # (they are still scraped and stored in Stage 3, but skipped here to save tokens and focus on shorter pieces)
+    llm_articles = [a for a in articles if a.get("word_count", 0) <= 500]
+    
+    if not llm_articles:
+        return {
+            "executive_summary": "No articles under 500 words were found to summarize.",
+            "key_themes": [],
+            "notable_picks": [],
+        }
+
+    # Dynamic Truncation: Aim for 80% of context window to be safe
     target_tokens = int(provider.context_window * 0.8)
-    combined_markdown = _dynamic_truncate(articles, target_tokens)
+    combined_markdown = _dynamic_truncate(llm_articles, target_tokens)
 
     try:
         raw = provider.complete(get_config().report_prompt, combined_markdown, max_tokens=8192)

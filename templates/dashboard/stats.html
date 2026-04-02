@@ -58,39 +58,6 @@
   {% endif %}
 </div>
 
-<!-- Card 2: Articles Per Source -->
-<div class="card">
-  <h2>Articles Per Source (All-Time)</h2>
-  {% if articles_per_source %}
-  <table>
-    <thead>
-      <tr>
-        <th>Source</th>
-        <th>Articles</th>
-        <th>% of Total</th>
-        <th style="width:200px;">Bar</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for src in articles_per_source %}
-      <tr>
-        <td>
-          <a href="{{ src.url }}" target="_blank" rel="noopener" style="color:#1a1a2e;text-decoration:none;">{{ src.name }}</a>
-        </td>
-        <td>{{ src.cnt }}</td>
-        <td>{{ src.pct }}%</td>
-        <td>
-          <div style="background:#4a90e2;height:8px;width:{{ src.pct }}%;border-radius:4px;min-width:2px;"></div>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  {% else %}
-  <p style="color:#666;">No article source data available.</p>
-  {% endif %}
-</div>
-
 <!-- Card 3: Extraction Quality -->
 {% if last_run %}
 <div class="card">
