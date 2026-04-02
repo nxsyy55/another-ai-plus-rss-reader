@@ -106,15 +106,10 @@ async def _run_pipeline(hours: int, provider: str | None, dry_run: bool) -> None
             f.write(art.get("markdown_content", "") + "\n\n---\n\n")
     click.echo(f"  Saved combined markdown to {scraped_path}")
 
-    combined_markdown = "\n\n".join(
-        f"# [{a.get('title', 'Unknown Title')}]({a.get('url', '')})\n{_truncate_words(a.get('markdown_content', ''))}"
-        for a in articles_with_content
-    )
-
     click.echo("▶ Stage 4: Generating daily report")
     from .reporter import generate_report
     from .db import save_report
-    report_data = generate_report(combined_markdown, provider_name)
+    report_data = generate_report(articles_with_content, provider_name)
     report_json = json.dumps(report_data, ensure_ascii=False)
     with get_db() as conn:
         save_report(conn, run_id, report_json)
@@ -161,6 +156,38 @@ def main(ctx: click.Context, hours: int | None, provider: str | None, dry_run: b
         cfg = get_config()
         h = hours or cfg.hours_window
         asyncio.run(_run_pipeline(h, provider, dry_run))
+
+
+@main.command()
+def update() -> None:
+    """Update extraction engines (trafilatura and defuddle)."""
+    import subprocess
+    import shutil
+
+    click.echo("▶ Updating extraction engines...")
+
+    # 1. Update Trafilatura
+    click.echo("  Updating trafilatura (Python)...")
+    try:
+        # Try uv first if available
+        if shutil.which("uv"):
+            subprocess.run(["uv", "pip", "install", "--upgrade", "trafilatura"], check=True)
+        else:
+            subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "trafilatura"], check=True)
+        click.echo("  ✓ Trafilatura updated.")
+    except subprocess.CalledProcessError as e:
+        click.echo(f"  [ERROR] Failed to update trafilatura: {e}")
+
+    # 2. Update Defuddle
+    click.echo("  Updating defuddle (Node.js)...")
+    if shutil.which("npm"):
+        try:
+            subprocess.run(["npm", "install", "-g", "defuddle"], check=True)
+            click.echo("  ✓ Defuddle updated.")
+        except subprocess.CalledProcessError as e:
+            click.echo(f"  [ERROR] Failed to update defuddle: {e}")
+    else:
+        click.echo("  [WARN] npm not found; skipping defuddle update.")
 
 
 @main.command()

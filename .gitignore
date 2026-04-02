@@ -50,3 +50,4 @@ filters.yaml
 docs/superpowers/
 
 hub/*.json
+clean.py

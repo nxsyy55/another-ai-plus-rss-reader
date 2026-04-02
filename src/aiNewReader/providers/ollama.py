@@ -20,6 +20,10 @@ class OllamaProvider:
         self._base_url = cfg.provider.ollama_base_url
         self._model = cfg.provider.ollama_chat_model
 
+    @property
+    def context_window(self) -> int:
+        return 32_000
+
     def _chat(self, system: str, user: str, model: str | None = None) -> str:
         model = model or self._model
         with httpx.Client(timeout=120.0) as client:

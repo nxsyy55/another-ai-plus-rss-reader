@@ -28,6 +28,10 @@ class GeminiProvider:
         self._client = genai.Client(api_key=api_key)
         self._model = cfg.provider.gemini_model
 
+    @property
+    def context_window(self) -> int:
+        return 1_000_000
+
     def classify(self, articles: list[ArticleInput]) -> list[ClassifyResult]:
         if not articles:
             return []

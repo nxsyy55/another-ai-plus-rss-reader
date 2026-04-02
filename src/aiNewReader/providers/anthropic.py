@@ -22,6 +22,10 @@ class AnthropicProvider:
         self._client = _anthropic.Anthropic()
         self._model = cfg.provider.anthropic_model
 
+    @property
+    def context_window(self) -> int:
+        return 200_000
+
     def classify(self, articles: list[ArticleInput]) -> list[ClassifyResult]:
         if not articles:
             return []

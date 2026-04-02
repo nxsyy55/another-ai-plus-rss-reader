@@ -99,18 +99,18 @@ async def extract_article(client: httpx.AsyncClient, article: dict[str, Any], fi
         #     if markdown:
         #         full_content_extracted = True
 
-        # Stage B: try Defuddle (Best quality Markdown)
+        # Stage B: try Trafilatura (Now primary engine)
         if not markdown:
             try:
                 resp = await client.get(url, timeout=TIMEOUT)
                 if resp.status_code < 400:
                     html = resp.text
-                    markdown = await _extract_with_defuddle(html)
+                    markdown = _extract_with_trafilatura(html, url)
                     if markdown:
                         full_content_extracted = True
                     else:
-                        # Stage C: fallback to trafilatura
-                        markdown = _extract_with_trafilatura(html, url)
+                        # Stage C: fallback to Defuddle
+                        markdown = await _extract_with_defuddle(html)
                         if markdown:
                             full_content_extracted = True
             except Exception:
