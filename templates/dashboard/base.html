@@ -52,6 +52,29 @@
 
   .btn-sm { padding: 0.25rem 0.625rem; font-size: 0.75rem; border-radius: 4px; }
 
+  input, select, textarea { padding: 0.4rem 0.6rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem; }
+  
+  .badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
+  .badge-green { background: #d4edda; color: #155724; }
+  .badge-red { background: #f8d7da; color: #721c24; }
+  .badge-blue { background: #d1ecf1; color: #0c5460; }
+  .badge-gray { background: #e2e3e5; color: #383d41; }
+  
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; }
+  .stat { text-align: center; display: flex; flex-direction: column; justify-content: center; background: #f9f9fb; border-radius: 8px; padding: 1rem; }
+  .stat .value { font-size: 1.8rem; font-weight: bold; line-height: 1.2; word-break: break-word; overflow-wrap: break-word; }
+  .stat .label { font-size: 0.8rem; color: #666; margin-top: 0.4rem; }
+  
+  form.inline { display: inline; }
+  .form-row { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; margin-bottom: 1rem; }
+  .tag { display: inline-block; background: #e8f0fe; color: #1a73e8; border-radius: 4px; padding: 0.1rem 0.4rem; font-size: 0.75rem; margin: 0.1rem; }
+  .article-item { border-bottom: 1px solid #f0f0f0; padding: 1rem 0; }
+  .article-item:last-child { border-bottom: none; }
+  .article-title { font-weight: 600; font-size: 1rem; }
+  .article-meta { font-size: 0.8rem; color: #666; margin: 0.25rem 0; }
+  .article-snippet { font-size: 0.85rem; color: #444; margin-top: 0.25rem; }
+  .feedback-btns { margin-top: 0.4rem; }
+
   .btn.loading {
     position: relative;
     color: transparent !important;
@@ -139,7 +162,6 @@
   <a href="/articles/" {% if request.url.path.startswith('/articles') %}class="active"{% endif %}>Articles</a>
   <a href="/stats/reports" {% if request.url.path.startswith('/stats/reports') %}class="active"{% endif %}>Reports</a>
   <a href="/stats/" {% if request.url.path == '/stats/' %}class="active"{% endif %}>Stats</a>
-  <a href="/query/" {% if request.url.path.startswith('/query/') %}class="active"{% endif %}>SQL Console</a>
 </nav>
 <div class="container">
 {% block content %}{% endblock %}
@@ -261,6 +283,9 @@
 
   // HTMX Integration
   document.body.addEventListener('htmx:afterRequest', (evt) => {
+    // Clean up loading states
+    document.querySelectorAll('.btn.loading').forEach(b => b.classList.remove('loading'));
+    
     if (evt.detail.error) {
       showToast('Error: ' + (evt.detail.xhr.responseText || 'Request failed'), 'error');
     } else if (evt.detail.successful) {

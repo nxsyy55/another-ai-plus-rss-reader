@@ -89,7 +89,7 @@
       </tbody>
     </table>
 
-    <button type="submit" class="btn btn-primary">Save Settings</button>
+    <button type="submit" class="btn btn-primary" style="width: 100%; max-width: 250px;">Save Settings</button>
   </form>
 
   <hr style="margin: 2rem 0; border: 0; border-top: 1px solid #eee;">
@@ -100,13 +100,19 @@
     (word count &lt; 50 or containing keywords like "login", "subscribe").
   </p>
   
-  <button 
-    hx-post="/settings/clean-paywalls" 
-    hx-confirm="Scan and exclude paywalled articles?"
-    hx-swap="none"
-    class="btn btn-danger">
-    Clean Paywalled Articles
-  </button>
+  <div style="display: flex; align-items: center; gap: 1rem;">
+    <button 
+      type="button"
+      hx-post="/settings/clean-paywalls" 
+      hx-confirm="Scan and exclude paywalled articles?"
+      hx-swap="none"
+      class="btn btn-danger"
+      onclick="this.classList.add('loading')"
+      hx-on::after-request="this.classList.remove('loading')"
+      style="width: 100%; max-width: 250px;">
+      Clean Paywalled Articles
+    </button>
+  </div>
 </div>
 
 {% endblock %}

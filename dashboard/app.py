@@ -11,7 +11,7 @@ from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from .routes import feeds, articles, settings, stats, query
+from .routes import feeds, articles, settings, stats
 from .templates import templates
 
 app = FastAPI(title="aiNewReader Dashboard", docs_url=None, redoc_url=None)
@@ -21,7 +21,6 @@ app.include_router(feeds.router, prefix="/feeds", tags=["feeds"])
 app.include_router(articles.router, prefix="/articles", tags=["articles"])
 app.include_router(settings.router, prefix="/settings", tags=["settings"])
 app.include_router(stats.router, prefix="/stats", tags=["stats"])
-app.include_router(query.router, prefix="/query", tags=["query"])
 
 def _provider_status() -> dict:
     """Check which providers have API keys configured."""
