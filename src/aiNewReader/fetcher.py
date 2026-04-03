@@ -108,6 +108,7 @@ async def _fetch_feed(
             "title": title,
             "pub_date": pub.isoformat() if pub else datetime.now().isoformat(),
             "feed_id": feed_id,
+            "skip_llm": bool(feed_row["skip_llm"]),
             "raw_summary": summary[:2000],
             "content_hash": _content_hash(title, summary),
             "dedup_status": "original",
@@ -132,9 +133,12 @@ async def fetch_all_feeds(hours: int) -> list[dict[str, Any]]:
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
     articles: list[dict[str, Any]] = []
-    for result in results:
+    for i, result in enumerate(results):
         if isinstance(result, list):
             articles.extend(result)
+        elif isinstance(result, Exception):
+            url = feeds[i]["url"]
+            print(f"  [ERROR] fetch task failed for {url}: {result}")
 
     # Deduplicate by URL before returning
     seen: set[str] = set()
@@ -179,7 +183,13 @@ async def fetch_all_feeds(hours: int) -> list[dict[str, Any]]:
 def sync_feeds_from_yaml(feeds_yaml: list[dict[str, Any]]) -> None:
     with get_db() as conn:
         for feed in feeds_yaml:
-            upsert_feed(conn, feed["url"], feed.get("name", feed["url"]), feed.get("enabled", True))
+            upsert_feed(
+                conn,
+                feed["url"],
+                feed.get("name", feed["url"]),
+                feed.get("enabled", True),
+                feed.get("skip_llm", False),
+            )
 
 
 def save_feeds_to_yaml(path: "Path | str" = "feeds.yaml") -> None:
@@ -188,7 +198,7 @@ def save_feeds_to_yaml(path: "Path | str" = "feeds.yaml") -> None:
     import yaml
     with get_db() as conn:
         rows = get_all_feeds(conn)
-    data = {"feeds": [{"url": r["url"], "name": r["name"] or r["url"], "enabled": bool(r["enabled"])} for r in rows]}
+    data = {"feeds": [{"url": r["url"], "name": r["name"] or r["url"], "enabled": bool(r["enabled"]), "skip_llm": bool(r["skip_llm"])} for r in rows]}
     with open(path, "w", encoding="utf-8") as f:
         yaml.dump(data, f, allow_unicode=True, default_flow_style=False)
 

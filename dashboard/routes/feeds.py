@@ -39,13 +39,22 @@ async def remove_feed(url: str = Form(...)):
     return RedirectResponse(url="/feeds/", status_code=303)
 
 
-@router.post("/report")
-async def report_feed_route(url: str = Form(...), reason: str = Form("")):
+@router.post("/skip-llm")
+async def skip_llm_route(url: str = Form(...)):
     from fastapi.responses import RedirectResponse
     from aiNewReader.fetcher import save_feeds_to_yaml
-    from aiNewReader.db import report_feed
     with get_db() as conn:
-        report_feed(conn, url, reason)
+        conn.execute("UPDATE feeds SET skip_llm=1 WHERE url=?", (url,))
+    save_feeds_to_yaml()
+    return RedirectResponse(url="/feeds/", status_code=303)
+
+
+@router.post("/unskip-llm")
+async def unskip_llm_route(url: str = Form(...)):
+    from fastapi.responses import RedirectResponse
+    from aiNewReader.fetcher import save_feeds_to_yaml
+    with get_db() as conn:
+        conn.execute("UPDATE feeds SET skip_llm=0 WHERE url=?", (url,))
     save_feeds_to_yaml()
     return RedirectResponse(url="/feeds/", status_code=303)
 

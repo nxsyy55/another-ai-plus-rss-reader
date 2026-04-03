@@ -112,7 +112,11 @@ async def _run_pipeline(hours: int, provider: str | None, dry_run: bool) -> None
     click.echo("▶ Stage 4: Generating daily report")
     from .reporter import generate_report
     from .db import save_report
-    report_data = generate_report(articles_with_content, provider_name)
+    
+    llm_eligible_articles = [a for a in articles_with_content if not a.get("skip_llm")]
+    click.echo(f"  Articles sent to LLM: {len(llm_eligible_articles)} (skipped {len(articles_with_content) - len(llm_eligible_articles)} marked ignore)")
+    
+    report_data = generate_report(llm_eligible_articles, provider_name)
     report_json = json.dumps(report_data, ensure_ascii=False)
     with get_db() as conn:
         save_report(conn, run_id, report_json)

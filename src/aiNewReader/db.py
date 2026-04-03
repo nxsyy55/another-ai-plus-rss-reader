@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Generator
 
 DB_PATH = Path("data/reader.db")
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 6
 
 
 def _get_conn(path: Path = DB_PATH) -> sqlite3.Connection:
@@ -51,6 +51,7 @@ def _create_schema(conn: sqlite3.Connection) -> None:
             url              TEXT UNIQUE NOT NULL,
             name             TEXT,
             enabled          BOOLEAN DEFAULT 1,
+            skip_llm         BOOLEAN DEFAULT 0,
             healthy          BOOLEAN DEFAULT 1,
             last_checked     DATETIME,
             last_fetched     DATETIME,
@@ -205,21 +206,26 @@ def _migrate(conn: sqlite3.Connection) -> None:
         """)
         conn.execute("CREATE INDEX IF NOT EXISTS idx_user_reports_type ON user_reports(type)")
         _set_schema_version(conn, 5)
+    if current < 6:
+        try:
+            conn.execute("ALTER TABLE feeds ADD COLUMN skip_llm BOOLEAN DEFAULT 0")
+        except sqlite3.OperationalError: pass
+        _set_schema_version(conn, 6)
 
 
 # ── Feed helpers ──────────────────────────────────────────────────────────────
 
-def upsert_feed(conn: sqlite3.Connection, url: str, name: str, enabled: bool = True) -> int:
+def upsert_feed(conn: sqlite3.Connection, url: str, name: str, enabled: bool = True, skip_llm: bool = False) -> int:
     row = conn.execute("SELECT id FROM feeds WHERE url=?", (url,)).fetchone()
     if row:
         conn.execute(
-            "UPDATE feeds SET name=?, enabled=? WHERE url=?",
-            (name, enabled, url),
+            "UPDATE feeds SET name=?, enabled=?, skip_llm=? WHERE url=?",
+            (name, enabled, skip_llm, url),
         )
         return row["id"]
     cur = conn.execute(
-        "INSERT INTO feeds(url, name, enabled) VALUES (?,?,?)",
-        (url, name, enabled),
+        "INSERT INTO feeds(url, name, enabled, skip_llm) VALUES (?,?,?,?)",
+        (url, name, enabled, skip_llm),
     )
     return cur.lastrowid
 

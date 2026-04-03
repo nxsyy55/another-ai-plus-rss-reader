@@ -65,6 +65,9 @@
         {% else %}
           <span class="badge badge-red">Dead</span>
         {% endif %}
+        {% if feed.skip_llm %}
+          <span class="badge badge-gray" style="margin-left: 4px;">Skip LLM</span>
+        {% endif %}
       </td>
       <td>{{ feed.article_count }}</td>
       <td style="white-space:nowrap">
@@ -83,10 +86,17 @@
           <input type="hidden" name="url" value="{{ feed.url }}">
           <button class="btn btn-sm btn-danger" type="submit">Remove</button>
         </form>
-        <form class="inline" action="/feeds/report" method="post" onsubmit="return confirm('Report and remove this feed?')">
+        {% if feed.skip_llm %}
+        <form class="inline" action="/feeds/unskip-llm" method="post">
           <input type="hidden" name="url" value="{{ feed.url }}">
-          <button class="btn btn-sm" type="submit" style="background:#dc3545;color:#fff;border-color:#dc3545;">Report</button>
+          <button class="btn btn-sm btn-primary" type="submit">Use LLM</button>
         </form>
+        {% else %}
+        <form class="inline" action="/feeds/skip-llm" method="post" onsubmit="return confirm('Skip LLM processing for articles from this feed?')">
+          <input type="hidden" name="url" value="{{ feed.url }}">
+          <button class="btn btn-sm" type="submit" style="background:#ffc107;color:#000;border-color:#ffc107;">Ignore LLM</button>
+        </form>
+        {% endif %}
       </td>
     </tr>
     {% endfor %}
