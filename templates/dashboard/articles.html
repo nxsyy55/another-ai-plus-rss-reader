@@ -46,9 +46,15 @@
     <div class="article-snippet">{{ art.raw_summary[:300] }}</div>
     {% endif %}
     <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem;">
-      <form action="/articles/{{ art.id }}/report" method="post" onsubmit="return confirm('Report and delete this article?')" class="inline">
-        <button type="submit" class="btn btn-sm btn-danger" style="padding: 2px 8px; font-size: 0.75rem;">Report</button>
-      </form>
+      <button 
+        hx-post="/articles/{{ art.id }}/report" 
+        hx-target="#art-{{ art.id }}" 
+        hx-swap="outerHTML"
+        hx-confirm="Report and delete this article?"
+        class="btn btn-sm btn-danger" 
+        style="padding: 2px 8px; font-size: 0.75rem;">
+        Report
+      </button>
     </div>
   </div>
   {% else %}

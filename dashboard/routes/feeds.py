@@ -24,38 +24,83 @@ async def add_feed(request: Request, url: str = Form(...), name: str = Form(""))
     from aiNewReader.fetcher import save_feeds_to_yaml
     with get_db() as conn:
         upsert_feed(conn, url, name or url)
+        feed = conn.execute("SELECT * FROM feeds WHERE url=?", (url,)).fetchone()
+        # article_count is 0 for new feed
+        feed_dict = dict(feed)
+        feed_dict["article_count"] = 0
+        
+        # We need an index for the new row. 
+        # A simple way is to use a timestamp or just a very large number if we don't know the count.
+        # But better to just use the count of feeds.
+        count = conn.execute("SELECT COUNT(*) as cnt FROM feeds").fetchone()["cnt"]
     save_feeds_to_yaml()
+    
+    if request.headers.get("HX-Request"):
+        return templates.TemplateResponse("_feed_row.html", {
+            "request": request, 
+            "feed": feed_dict, 
+            "index": count + 1000 # Avoid collision with existing loop indices
+        }, headers={"X-Toast-Message": "Feed added successfully."})
+
     return RedirectResponse(url="/feeds/", status_code=303)
 
 
 @router.post("/remove")
-async def remove_feed(url: str = Form(...)):
-    from fastapi.responses import RedirectResponse
+async def remove_feed(request: Request, url: str = Form(...)):
+    from fastapi.responses import RedirectResponse, Response
     from aiNewReader.fetcher import save_feeds_to_yaml
     from aiNewReader.db import delete_feed_by_url
     with get_db() as conn:
         delete_feed_by_url(conn, url)
     save_feeds_to_yaml()
+    
+    if request.headers.get("HX-Request"):
+        return Response(content="", headers={"X-Toast-Message": "Feed removed."})
+        
     return RedirectResponse(url="/feeds/", status_code=303)
 
 
 @router.post("/skip-llm")
-async def skip_llm_route(url: str = Form(...)):
-    from fastapi.responses import RedirectResponse
+async def skip_llm_route(request: Request, url: str = Form(...), index: int = Form(None)):
     from aiNewReader.fetcher import save_feeds_to_yaml
     with get_db() as conn:
         conn.execute("UPDATE feeds SET skip_llm=1 WHERE url=?", (url,))
+        feed = conn.execute("SELECT * FROM feeds WHERE url=?", (url,)).fetchone()
+        article_count = conn.execute("SELECT COUNT(*) as cnt FROM articles WHERE feed_id = ?", (feed["id"],)).fetchone()["cnt"]
     save_feeds_to_yaml()
+    
+    if request.headers.get("HX-Request") and index is not None:
+        feed_dict = dict(feed)
+        feed_dict["article_count"] = article_count
+        return templates.TemplateResponse("_feed_row.html", {
+            "request": request, 
+            "feed": feed_dict, 
+            "index": index
+        }, headers={"X-Toast-Message": "LLM processing disabled for this feed."})
+        
+    from fastapi.responses import RedirectResponse
     return RedirectResponse(url="/feeds/", status_code=303)
 
 
 @router.post("/unskip-llm")
-async def unskip_llm_route(url: str = Form(...)):
-    from fastapi.responses import RedirectResponse
+async def unskip_llm_route(request: Request, url: str = Form(...), index: int = Form(None)):
     from aiNewReader.fetcher import save_feeds_to_yaml
     with get_db() as conn:
         conn.execute("UPDATE feeds SET skip_llm=0 WHERE url=?", (url,))
+        feed = conn.execute("SELECT * FROM feeds WHERE url=?", (url,)).fetchone()
+        article_count = conn.execute("SELECT COUNT(*) as cnt FROM articles WHERE feed_id = ?", (feed["id"],)).fetchone()["cnt"]
     save_feeds_to_yaml()
+    
+    if request.headers.get("HX-Request") and index is not None:
+        feed_dict = dict(feed)
+        feed_dict["article_count"] = article_count
+        return templates.TemplateResponse("_feed_row.html", {
+            "request": request, 
+            "feed": feed_dict, 
+            "index": index
+        }, headers={"X-Toast-Message": "LLM processing enabled for this feed."})
+        
+    from fastapi.responses import RedirectResponse
     return RedirectResponse(url="/feeds/", status_code=303)
 
 
@@ -77,18 +122,42 @@ async def remove_feeds_batch(request: Request):
 
 
 @router.post("/disable")
-async def disable_feed(url: str = Form(...)):
-    from fastapi.responses import RedirectResponse
+async def disable_feed(request: Request, url: str = Form(...), index: int = Form(None)):
     with get_db() as conn:
         conn.execute("UPDATE feeds SET enabled=0 WHERE url=?", (url,))
+        feed = conn.execute("SELECT * FROM feeds WHERE url=?", (url,)).fetchone()
+        article_count = conn.execute("SELECT COUNT(*) as cnt FROM articles WHERE feed_id = ?", (feed["id"],)).fetchone()["cnt"]
+    
+    if request.headers.get("HX-Request") and index is not None:
+        feed_dict = dict(feed)
+        feed_dict["article_count"] = article_count
+        return templates.TemplateResponse("_feed_row.html", {
+            "request": request, 
+            "feed": feed_dict, 
+            "index": index
+        }, headers={"X-Toast-Message": "Feed disabled."})
+        
+    from fastapi.responses import RedirectResponse
     return RedirectResponse(url="/feeds/", status_code=303)
 
 
 @router.post("/enable")
-async def enable_feed(url: str = Form(...)):
-    from fastapi.responses import RedirectResponse
+async def enable_feed(request: Request, url: str = Form(...), index: int = Form(None)):
     with get_db() as conn:
         conn.execute("UPDATE feeds SET enabled=1 WHERE url=?", (url,))
+        feed = conn.execute("SELECT * FROM feeds WHERE url=?", (url,)).fetchone()
+        article_count = conn.execute("SELECT COUNT(*) as cnt FROM articles WHERE feed_id = ?", (feed["id"],)).fetchone()["cnt"]
+
+    if request.headers.get("HX-Request") and index is not None:
+        feed_dict = dict(feed)
+        feed_dict["article_count"] = article_count
+        return templates.TemplateResponse("_feed_row.html", {
+            "request": request, 
+            "feed": feed_dict, 
+            "index": index
+        }, headers={"X-Toast-Message": "Feed enabled."})
+        
+    from fastapi.responses import RedirectResponse
     return RedirectResponse(url="/feeds/", status_code=303)
 
 

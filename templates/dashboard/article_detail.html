@@ -65,16 +65,17 @@
       const data = await response.json();
       
       if (data.status === 'success') {
-        alert('Success: ' + data.message);
+        showToast(data.message, 'success');
         btn.innerText = 'Sent!';
-        btn.style.background = '#888';
+        btn.classList.add('btn-secondary');
+        btn.classList.remove('btn-success'); // in case it had it
       } else {
-        alert('Error: ' + data.message);
+        showToast('Error: ' + data.message, 'error');
         btn.disabled = false;
         btn.innerText = originalText;
       }
     } catch (error) {
-      alert('Error: ' + error.message);
+      showToast('Error: ' + error.message, 'error');
       btn.disabled = false;
       btn.innerText = originalText;
     }
@@ -96,15 +97,15 @@
       const data = await response.json();
       
       if (data.status === 'success') {
-        alert('Success: ' + data.message);
-        window.location.reload();
+        showToast(data.message, 'success');
+        setTimeout(() => window.location.reload(), 1000);
       } else {
-        alert('Error: ' + data.message);
+        showToast('Error: ' + data.message, 'error');
         btn.disabled = false;
         btn.innerText = originalText;
       }
     } catch (error) {
-      alert('Error: ' + error.message);
+      showToast('Error: ' + error.message, 'error');
       btn.disabled = false;
       btn.innerText = originalText;
     }

@@ -1,0 +1,62 @@
+    <tr id="feed-{{ index }}">
+      <td><input type="checkbox" class="feed-checkbox" value="{{ feed.url }}"></td>
+      <td>{{ feed.name or '—' }}</td>
+      <td style="font-size:0.8rem;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ feed.url }}">{{ feed.url }}</td>
+      <td id="status-{{ index }}">
+        {% if not feed.enabled %}
+          <span class="badge badge-gray">Disabled</span>
+        {% elif feed.healthy %}
+          <span class="badge badge-green">Healthy</span>
+        {% else %}
+          <span class="badge badge-red">Dead</span>
+        {% endif %}
+        {% if feed.skip_llm %}
+          <span class="badge badge-gray" style="margin-left: 4px;">Skip LLM</span>
+        {% endif %}
+      </td>
+      <td>{{ feed.article_count }}</td>
+      <td style="white-space:nowrap">
+        <div id="actions-{{ index }}" style="display: flex; gap: 0.25rem;">
+          {% if feed.enabled %}
+          <button 
+            hx-post="/feeds/disable" 
+            hx-vals='{"url": "{{ feed.url }}", "index": "{{ index }}"}'
+            hx-target="#feed-{{ index }}"
+            hx-swap="outerHTML"
+            class="btn btn-sm" style="background:#6c757d;color:#fff">Disable</button>
+          {% else %}
+          <button 
+            hx-post="/feeds/enable" 
+            hx-vals='{"url": "{{ feed.url }}", "index": "{{ index }}"}'
+            hx-target="#feed-{{ index }}"
+            hx-swap="outerHTML"
+            class="btn btn-sm btn-primary">Enable</button>
+          {% endif %}
+          
+          <button 
+            hx-post="/feeds/remove" 
+            hx-vals='{"url": "{{ feed.url }}"}'
+            hx-target="#feed-{{ index }}"
+            hx-swap="outerHTML"
+            hx-confirm="Remove this feed?"
+            class="btn btn-sm btn-danger">Remove</button>
+
+          {% if feed.skip_llm %}
+          <button 
+            hx-post="/feeds/unskip-llm" 
+            hx-vals='{"url": "{{ feed.url }}", "index": "{{ index }}"}'
+            hx-target="#feed-{{ index }}"
+            hx-swap="outerHTML"
+            class="btn btn-sm btn-primary">Use LLM</button>
+          {% else %}
+          <button 
+            hx-post="/feeds/skip-llm" 
+            hx-vals='{"url": "{{ feed.url }}", "index": "{{ index }}"}'
+            hx-target="#feed-{{ index }}"
+            hx-swap="outerHTML"
+            hx-confirm="Skip LLM processing for articles from this feed?"
+            class="btn btn-sm" style="background:#ffc107;color:#000;border-color:#ffc107;">Ignore LLM</button>
+          {% endif %}
+        </div>
+      </td>
+    </tr>

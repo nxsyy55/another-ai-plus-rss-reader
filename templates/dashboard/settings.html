@@ -4,7 +4,7 @@
 
 <div class="card">
   <h1>Settings</h1>
-  <form action="/settings/save" method="post">
+  <form hx-post="/settings/save" hx-swap="none">
 
     <h2 style="margin-bottom:0.75rem">Report Prompt</h2>
     <p style="font-size:0.85rem;color:#666;margin-bottom:0.5rem">Customize the system prompt sent to the LLM when generating the daily briefing.</p>
@@ -100,15 +100,13 @@
     (word count &lt; 50 or containing keywords like "login", "subscribe").
   </p>
   
-  <form action="/settings/clean-paywalls" method="post" onsubmit="return confirm('Scan and exclude paywalled articles?')">
-    <button type="submit" class="btn" style="background:#dc3545;color:#fff">Clean Paywalled Articles</button>
-  </form>
-  
-  {% if request.query_params.get('cleaned') %}
-  <p style="color:#28a745;font-size:0.85rem;margin-top:0.5rem">
-    ✓ Paywall cleaning completed!
-  </p>
-  {% endif %}
+  <button 
+    hx-post="/settings/clean-paywalls" 
+    hx-confirm="Scan and exclude paywalled articles?"
+    hx-swap="none"
+    class="btn btn-danger">
+    Clean Paywalled Articles
+  </button>
 </div>
 
 {% endblock %}

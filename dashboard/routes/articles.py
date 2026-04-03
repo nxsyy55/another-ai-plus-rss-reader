@@ -182,10 +182,14 @@ async def refetch_article(article_id: int):
 
 
 @router.post("/{article_id}/report")
-async def report_article_route(article_id: int, reason: str = Form("")):
+async def report_article_route(request: Request, article_id: int, reason: str = Form("")):
     from aiNewReader.db import report_article
     with get_db() as conn:
         report_article(conn, article_id, reason)
+    
+    if request.headers.get("HX-Request"):
+        return HTMLResponse(content="", headers={"X-Toast-Message": "Article reported and removed."})
+    
     return RedirectResponse(url="/articles/", status_code=303)
 
 

@@ -83,11 +83,19 @@ async def save_settings(
         yaml.dump(data, f, allow_unicode=True, default_flow_style=False)
 
     load_config("config.yaml")
-    return RedirectResponse(url="/", status_code=303)
+    
+    if request.headers.get("HX-Request"):
+        return HTMLResponse(content="", headers={"X-Toast-Message": "Settings saved successfully."})
+        
+    return RedirectResponse(url="/settings/", status_code=303)
 
 
 @router.post("/clean-paywalls")
-async def clean_paywalls_action():
+async def clean_paywalls_action(request: Request):
     from aiNewReader.cleaner import clean_paywalls
-    clean_paywalls(dry_run=False)
+    count = clean_paywalls(dry_run=False)
+    
+    if request.headers.get("HX-Request"):
+        return HTMLResponse(content="", headers={"X-Toast-Message": f"Paywall cleaning completed! Removed/Marked {count} articles."})
+        
     return RedirectResponse(url="/settings/?cleaned=1", status_code=303)

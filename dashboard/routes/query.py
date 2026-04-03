@@ -49,7 +49,9 @@ async def execute_query(request: Request, sql: str = Form(...)):
     except Exception as e:
         error = f"An unexpected error occurred: {str(e)}"
 
-    return templates.TemplateResponse("query.html", {
+    template = "_query_results.html" if request.headers.get("HX-Request") else "query.html"
+    
+    return templates.TemplateResponse(template, {
         "request": request,
         "query": sql,
         "results": [dict(r) if hasattr(r, 'keys') else r for r in results],
