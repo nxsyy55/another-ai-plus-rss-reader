@@ -90,7 +90,8 @@ async def _run_pipeline(hours: int, provider: str | None, dry_run: bool) -> None
                 art["id"], 
                 art.get("markdown_content", ""), 
                 art.get("word_count", 0),
-                full_extracted=art.get("full_content_extracted", False)
+                full_extracted=art.get("full_content_extracted", False),
+                language=art.get("language")
             )
 
     stats["extracted"] = len(articles)
