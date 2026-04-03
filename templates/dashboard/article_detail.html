@@ -5,6 +5,13 @@
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
     <a href="javascript:history.back()" class="btn" style="background:#f0f0f0;color:#333;">← Back to Articles</a>
     <div style="display: flex; gap: 0.5rem;">
+      {% if article.feed_url %}
+      <form action="/feeds/remove" method="post" onsubmit="return confirm('Delete this entire source ({{ article.feed_name or article.feed_url }}) and ALL its articles?')" class="inline">
+        <input type="hidden" name="url" value="{{ article.feed_url }}">
+        <button type="submit" class="btn btn-danger">Delete Source</button>
+      </form>
+      {% endif %}
+      <button id="btn-refetch" class="btn" style="background:#007bff;color:white;">Re-fetch</button>
       <button id="btn-send-to-hub" class="btn" style="background:#4caf50;color:white;">Send to Hub</button>
       <form action="/articles/{{ article.id }}/report" method="post" onsubmit="return confirm('Report and delete this article?')" class="inline">
         <button type="submit" class="btn btn-danger">Report</button>
@@ -14,7 +21,7 @@
   
   <h1 style="margin-bottom:0.5rem">{{ article.title }}</h1>
   <div class="article-meta" style="margin-bottom:1.5rem;color:#666;font-size:0.9rem;">
-    {{ article.pub_date | to_local_datetime | strftime('%Y-%m-%d %H:%M %Z') }} {% if article.word_count %} · {{ article.word_count }} words{% endif %}  </div>
+    {{ article.pub_date | to_local_datetime | strftime('%Y-%m-%d %H:%M %Z') }} {% if article.word_count %} · {{ article.word_count }} words{% endif %} {% if article.feed_name %} · <strong>{{ article.feed_name }}</strong>{% endif %}  </div>
 
   {% if article.markdown_content %}
   <div id="markdown-content" style="line-height:1.7; color:#333; display: none;">{{ article.markdown_content }}</div>
@@ -27,7 +34,9 @@
 
   <div style="margin-top:2.5rem; padding-top:1.5rem; border-top:1px solid #eee;">
     <p style="font-size:0.85rem; color:#666;">
-      <strong>Source:</strong> <a href="{{ article.url }}" target="_blank" style="color:#1a73e8;">{{ article.url }}</a>
+      <strong>Source:</strong> {% if article.feed_name %}{{ article.feed_name }} · <a href="{{ article.feed_url }}" target="_blank" style="color:#1a73e8;">{{ article.feed_url }}</a>{% else %}<a href="{{ article.feed_url }}" target="_blank" style="color:#1a73e8;">{{ article.feed_url }}</a>{% endif %}
+      <br>
+      <strong>Original URL:</strong> <a href="{{ article.url }}" target="_blank" style="color:#1a73e8;">{{ article.url }}</a>
     </p>
   </div>
 </div>
@@ -59,6 +68,36 @@
         alert('Success: ' + data.message);
         btn.innerText = 'Sent!';
         btn.style.background = '#888';
+      } else {
+        alert('Error: ' + data.message);
+        btn.disabled = false;
+        btn.innerText = originalText;
+      }
+    } catch (error) {
+      alert('Error: ' + error.message);
+      btn.disabled = false;
+      btn.innerText = originalText;
+    }
+  });
+
+  // Re-fetch logic
+  document.getElementById('btn-refetch').addEventListener('click', async function() {
+    if (!confirm('Are you sure you want to re-fetch the content of this article? This will overwrite the current content.')) return;
+    
+    const btn = this;
+    const originalText = btn.innerText;
+    btn.disabled = true;
+    btn.innerText = 'Fetching...';
+    
+    try {
+      const response = await fetch(`/articles/{{ article.id }}/refetch`, {
+        method: 'POST',
+      });
+      const data = await response.json();
+      
+      if (data.status === 'success') {
+        alert('Success: ' + data.message);
+        window.location.reload();
       } else {
         alert('Error: ' + data.message);
         btn.disabled = false;

@@ -129,7 +129,12 @@ async def articles_page(
 async def article_detail(request: Request, article_id: int):
     init_db()
     with get_db() as conn:
-        row = conn.execute("SELECT * FROM articles WHERE id = ?", (article_id,)).fetchone()
+        row = conn.execute("""
+            SELECT a.*, f.name as feed_name, f.url as feed_url
+            FROM articles a
+            LEFT JOIN feeds f ON a.feed_id = f.id
+            WHERE a.id = ?
+        """, (article_id,)).fetchone()
         if not row:
             return HTMLResponse(content="Article not found", status_code=404)
         article = dict(row)
@@ -138,6 +143,42 @@ async def article_detail(request: Request, article_id: int):
         "request": request,
         "article": article,
     })
+
+
+@router.post("/{article_id}/refetch")
+async def refetch_article(article_id: int):
+    import httpx
+    from aiNewReader.extractor import extract_article
+    from aiNewReader.db import update_article_content
+    
+    init_db()
+    with get_db() as conn:
+        row = conn.execute("SELECT * FROM articles WHERE id = ?", (article_id,)).fetchone()
+        if not row:
+            return JSONResponse({"status": "error", "message": "Article not found"}, status_code=404)
+        article = dict(row)
+
+    config = get_config()
+    
+    async with httpx.AsyncClient(follow_redirects=True, headers={"User-Agent": "aiNewReader/0.1"}) as client:
+        # Pass a mutable dict to extract_article, it populates it
+        # Note: We set markdown_content to None to force re-extraction in extract_article
+        article_to_extract = dict(article)
+        article_to_extract["markdown_content"] = None 
+        
+        extracted = await extract_article(client, article_to_extract)
+
+    with get_db() as conn:
+        update_article_content(
+            conn, 
+            article_id, 
+            extracted.get("markdown_content", ""), 
+            extracted.get("word_count", 0), 
+            extracted.get("full_content_extracted", False),
+            extracted.get("language", "en")
+        )
+        
+    return {"status": "success", "message": "Article refetched successfully."}
 
 
 @router.post("/{article_id}/report")
