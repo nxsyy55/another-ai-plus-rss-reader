@@ -151,6 +151,17 @@
     outline-offset: 2px;
     background-color: #eff6ff !important;
   }
+  /* Custom Confirm Modal */
+  #custom-confirm-modal {
+    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+    background: rgba(0,0,0,0.5); z-index: 10001; align-items: center; justify-content: center;
+  }
+  #custom-confirm-modal .card {
+    max-width: 400px; width: 90%; text-align: center; padding: 2rem;
+  }
+  #custom-confirm-modal .btns {
+    display: flex; gap: 1rem; justify-content: center; margin-top: 1.5rem;
+  }
 </style>
 </head>
 <body>
@@ -168,6 +179,16 @@
 </div>
 
 <div id="toast-container"></div>
+
+<div id="custom-confirm-modal">
+  <div class="card">
+    <h3 id="custom-confirm-msg" style="margin-bottom: 0.5rem;">Are you sure?</h3>
+    <div class="btns">
+      <button id="custom-confirm-cancel" class="btn btn-secondary">Cancel</button>
+      <button id="custom-confirm-ok" class="btn btn-danger">Confirm</button>
+    </div>
+  </div>
+</div>
 
 <div id="kb-help-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:10000; align-items:center; justify-content:center;">
   <div class="card" style="max-width:500px; width:90%; position:relative;">
@@ -282,6 +303,30 @@
   });
 
   // HTMX Integration
+  document.body.addEventListener('htmx:confirm', function(evt) {
+    evt.preventDefault();
+    const modal = document.getElementById('custom-confirm-modal');
+    const msgEl = document.getElementById('custom-confirm-msg');
+    const btnOk = document.getElementById('custom-confirm-ok');
+    const btnCancel = document.getElementById('custom-confirm-cancel');
+    
+    msgEl.innerText = evt.detail.question;
+    modal.style.display = 'flex';
+    
+    const cleanup = () => {
+      modal.style.display = 'none';
+      btnOk.onclick = null;
+      btnCancel.onclick = null;
+    };
+    
+    btnOk.onclick = () => {
+      cleanup();
+      evt.detail.issueRequest(true);
+    };
+    
+    btnCancel.onclick = cleanup;
+  });
+
   document.body.addEventListener('htmx:afterRequest', (evt) => {
     // Clean up loading states
     document.querySelectorAll('.btn.loading').forEach(b => b.classList.remove('loading'));

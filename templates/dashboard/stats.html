@@ -169,23 +169,23 @@
   <h2>Token Cost Estimate (Last Run)</h2>
   <div class="stat-grid" style="margin-bottom:1rem;">
     <div class="stat">
-      <div class="value" style="font-size:1.3rem;">{{ token_estimate.provider or '—' }}</div>
+      <div class="value">{{ token_estimate.provider or '—' }}</div>
       <div class="label">Provider</div>
     </div>
     <div class="stat">
-      <div class="value" style="font-size:1rem;word-break:break-all;">{{ token_estimate.model or '—' }}</div>
+      <div class="value" style="font-size: 1.2rem;">{{ token_estimate.model or '—' }}</div>
       <div class="label">Model</div>
     </div>
     <div class="stat">
-      <div class="value" style="font-size:1.3rem;">{{ "{:,}".format(token_estimate.input_tokens) }}</div>
+      <div class="value">{{ "{:,}".format(token_estimate.input_tokens) }}</div>
       <div class="label">Input Tokens</div>
     </div>
     <div class="stat">
-      <div class="value" style="font-size:1.3rem;">{{ "{:,}".format(token_estimate.output_tokens) }}</div>
+      <div class="value">{{ "{:,}".format(token_estimate.output_tokens) }}</div>
       <div class="label">Output Tokens</div>
     </div>
     <div class="stat">
-      <div class="value" style="font-size:1.3rem;">${{ "%.4f"|format(token_estimate.cost_usd) }}</div>
+      <div class="value">${{ "%.4f"|format(token_estimate.cost_usd) }}</div>
       <div class="label">Estimated Cost</div>
     </div>
   </div>
